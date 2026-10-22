@@ -78,7 +78,7 @@ h1,h2,h3,p{margin:0;}
 
 /* ===== Install banner ===== */
 #install-banner{
-  position:fixed; top:0; left:0; right:0; z-index:500;
+  position:fixed; top:0; left:0; right:0; z-index:10000;
   background:var(--teal); color:#fff; padding:10px 14px;
   display:flex; align-items:center; gap:10px; font-size:13px;
 }
@@ -1618,14 +1618,35 @@ function isStandalone(){
 function isIOS(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
+// Samsung Internet packages installed web apps in a way Google Play Protect flags as
+// "Unsafe app blocked". Never offer install there — send the user to Chrome instead.
+function isSamsungBrowser(){ return /SamsungBrowser/i.test(navigator.userAgent); }
+let PENDING_CODE = '';
+function chromeIntentUrl(){
+  // Carry the activation code across so Chrome activates without pasting again
+  const code = (LICENSE && LICENSE.code) || PENDING_CODE || extractLicenseCode(document.getElementById('license-input').value);
+  const q = code ? '?activate=' + encodeURIComponent(code) : '';
+  return 'intent://' + location.host + location.pathname + q + '#Intent;scheme=https;package=com.android.chrome;end';
+}
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
+  if (isSamsungBrowser()) return;
   deferredInstallPrompt = e;
   if (!isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
     document.getElementById('install-banner').classList.remove('hidden');
   }
 });
+function showSamsungHint(){
+  if (!isSamsungBrowser() || isStandalone()) return;
+  document.getElementById('install-banner-text').textContent = 'To install safely, open this app in Chrome';
+  document.getElementById('install-btn').textContent = 'Open in Chrome';
+  document.getElementById('install-banner').classList.remove('hidden');
+}
 document.getElementById('install-btn').addEventListener('click', async () => {
+  if (isSamsungBrowser()){
+    location.href = chromeIntentUrl();
+    return;
+  }
   if (deferredInstallPrompt){
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
@@ -1681,11 +1702,14 @@ async function startApp(){
 
 (async function init(){
   // Activation link: .../#activate=<code> fills the box and activates in one tap
-  const m = location.hash.match(/activate=([^&]+)/);
+  // (also accepts ?activate=<code>, used when Samsung Internet hands over to Chrome)
+  const m = location.hash.match(/activate=([^&]+)/) || location.search.match(/activate=([^&]+)/);
   if (m){
-    history.replaceState(null, '', location.pathname + location.search);
-    document.getElementById('license-input').value = decodeURIComponent(m[1]);
+    history.replaceState(null, '', location.pathname);
+    PENDING_CODE = decodeURIComponent(m[1]);
+    document.getElementById('license-input').value = PENDING_CODE;
   }
+  showSamsungHint();
   // Re-check the stored code's signature on every start (old preset keys are no longer accepted)
   const license = await idbGet('settings', 'license');
   let lic = license && license.code ? await verifyLicenseCode(license.code) : null;
