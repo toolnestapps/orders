@@ -1,6 +1,6 @@
 // Food Order Tracker — Service Worker
 // IMPORTANT: bump CACHE_VERSION on every release so installed users get the update.
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = 'food-order-tracker-' + CACHE_VERSION;
 const APP_SHELL = [
   './',
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((names) => Promise.all(names.map((n) => (n !== CACHE_NAME ? caches.delete(n) : null))))
+      .then((names) => Promise.all(names.map((n) => (n !== CACHE_NAME && n !== 'fot-shared' ? caches.delete(n) : null))))
       .then(() => self.clients.claim())
   );
 });
@@ -35,6 +35,23 @@ function putInCache(request, response) {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+
+  // A backup file shared INTO the app (WhatsApp → Share → Orders): keep it, then open the app to restore.
+  if (req.method === 'POST' && new URL(req.url).pathname.endsWith('/share-restore')) {
+    event.respondWith((async () => {
+      try {
+        const form = await req.formData();
+        const f = form.get('backup');
+        if (f && typeof f !== 'string') {
+          const cache = await caches.open('fot-shared');
+          await cache.put('shared-backup', new Response(await f.text(), { headers: { 'Content-Type': 'text/plain' } }));
+        }
+      } catch (e) {}
+      return Response.redirect(new URL('./?shared-restore=1', self.registration.scope).href, 303);
+    })());
+    return;
+  }
+
   if (req.method !== 'GET') return;
 
   // Page (HTML): NETWORK-FIRST so new releases arrive as soon as the user is online;

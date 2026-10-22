@@ -266,7 +266,7 @@ nav.bottom-nav button.active{color:var(--accent);}
 #toast{
   position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); z-index:1000;
   background:var(--text); color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; max-width:88%;
-  opacity:0; transition:all .25s; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  opacity:0; transition:all .25s; pointer-events:none; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.25);
 }
 #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
@@ -573,11 +573,12 @@ nav.bottom-nav button.active{color:var(--accent);}
         <div class="settings-group">
           <h3>Backup & Restore</h3>
           <p style="font-size:13px;color:var(--text-mute);margin-bottom:6px;">Your orders are saved only on this phone — nobody else can see them, not even us. If the phone is lost, only a backup can bring them back.</p>
-          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;"><b>Tip:</b> tap Backup → choose <b>WhatsApp → "Message yourself"</b> or <b>Google Drive</b>. On a new phone: activate with your code, then tap Restore and pick that file.</p>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;"><b>Tip:</b> tap Backup → <b>Send</b> → WhatsApp "Message yourself" or Google Drive (safe if the phone is lost), or <b>Save on this phone</b>. On a new phone: activate with your code, then tap Restore.</p>
           <p id="backup-status" style="font-size:13px;font-weight:700;margin-bottom:10px;"></p>
-          <button class="btn-secondary" id="export-data-btn" style="margin-top:0;">💾 Backup now (send to WhatsApp / Drive)</button>
+          <button class="btn-secondary" id="export-data-btn" style="margin-top:0;">💾 Backup now</button>
           <button class="btn-secondary" id="import-data-btn">⬆️ Restore (Import Data)</button>
           <input type="file" id="import-file-input" accept="application/json,.json,text/plain,*/*" class="hidden">
+          <p style="font-size:12px;color:var(--text-mute);margin-top:10px;"><b>Restoring from WhatsApp?</b> Android: in WhatsApp, long-press the backup file → Share (↗) → <b>Orders</b>. Or open the file → ⋮ → Save, then tap Restore. iPhone: save the file to Files first, then tap Restore.</p>
           <button class="btn-secondary" id="export-csv-btn">📊 Export orders to Excel</button>
           <p style="font-size:12px;color:var(--text-mute);margin-top:12px;" id="app-version-label"></p>
         </div>
@@ -615,7 +616,7 @@ const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34b
 const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 const SALES_WHATSAPP = '';
 // Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
 const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
@@ -1496,10 +1497,37 @@ async function loadSampleData(){
    Opens the phone's share menu so the backup goes to WhatsApp ("Message yourself"),
    Google Drive or email — a backup that stays on the same phone is lost with the phone.
    Falls back to a normal download where sharing files isn't supported. */
-async function shareOrDownload(blob, filename, title){
+function canShareFiles(){
+  try { return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.txt', { type:'text/plain' })] })); }
+  catch(e){ return false; }
+}
+// Asks: send to WhatsApp/Drive, or save on this phone. Resolves 'share' | 'save' | null.
+function chooseDestination(title){
+  if (!canShareFiles()) return Promise.resolve('save');   // phone can't share files → just save
+  return new Promise(resolve => {
+    document.getElementById('toast').classList.remove('show');
+    const root = document.getElementById('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <h3>${escapeHtml(title)}</h3>
+          <p>Where should the file go?</p>
+          <button class="btn-primary" id="dest-share" style="margin:0 0 10px;">📤 Send to WhatsApp / Drive / Email</button>
+          <button class="btn-secondary" id="dest-save" style="margin:0 0 10px;">📥 Save on this phone (Downloads)</button>
+          <button class="modal-cancel" id="dest-cancel" style="width:100%;padding:12px;border:none;border-radius:12px;">Cancel</button>
+        </div>
+      </div>`;
+    const done = (v) => { root.innerHTML = ''; resolve(v); };
+    document.getElementById('dest-share').addEventListener('click', () => done('share'));
+    document.getElementById('dest-save').addEventListener('click', () => done('save'));
+    document.getElementById('dest-cancel').addEventListener('click', () => done(null));
+    document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id === 'modal-overlay') done(null); });
+  });
+}
+async function shareOrDownload(blob, filename, title, mode = 'share'){
   const file = new File([blob], filename, { type: blob.type });
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })){
+    if (mode === 'share' && navigator.canShare && navigator.canShare({ files: [file] })){
       await navigator.share({ files: [file], title, text: title });
       return 'shared';
     }
@@ -1519,13 +1547,16 @@ async function runBackup(){
   // (Restore reads both .txt and older .json backups.)
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'text/plain' });
   const name = (SETTINGS.businessName || 'my-kitchen').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30) || 'my-kitchen';
-  const res = await shareOrDownload(blob, `${name}-backup-${todayISO()}.txt`, 'Food Order Tracker backup');
+  const mode = await chooseDestination('Backup your orders');
+  if (!mode) return;
+  const res = await shareOrDownload(blob, `${name}-backup-${todayISO()}.txt`, 'Food Order Tracker backup', mode);
   if (res === 'cancelled') return;
   SETTINGS.ordersSinceLastBackup = 0;
   SETTINGS.lastBackupAt = Date.now();
   await idbPut('settings', SETTINGS);
   renderBackupStatus();
   if (res === 'shared') showToast('Backup sent ✅ Keep that file safe.', 4500);
+  else if (mode === 'save' && canShareFiles()) showToast('Backup saved in Downloads ✅ Tip: also send one to WhatsApp or Drive, in case the phone is lost.', 5000);
   else confirmModal('Backup saved to Downloads ✅',
     'To keep it safe if your phone is lost: open WhatsApp → "Message yourself" → 📎 → Document → Downloads → pick this backup file and send it.',
     () => {}, 'OK');
@@ -1559,7 +1590,10 @@ document.getElementById('export-csv-btn').addEventListener('click', async () => 
     o.paymentMethod, o.paymentStatus, o.status, o.notes ]);
   const esc = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
   const csv = '﻿' + [head, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
-  await shareOrDownload(new Blob([csv], { type:'text/csv' }), `orders-${todayISO()}.csv`, 'Orders (spreadsheet)');
+  const mode = await chooseDestination('Export orders to Excel');
+  if (!mode) return;
+  const res = await shareOrDownload(new Blob([csv], { type:'text/csv' }), `orders-${todayISO()}.csv`, 'Orders (spreadsheet)', mode);
+  if (res === 'downloaded') showToast('Saved in Downloads ✅ Open it with Excel or Google Sheets.', 4500);
 });
 
 document.getElementById('import-data-btn').addEventListener('click', () => {
@@ -1570,8 +1604,13 @@ document.getElementById('import-data-btn').addEventListener('click', () => {
 document.getElementById('import-file-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  await restoreFromText(await file.text());
+  e.target.value = '';
+});
+// Only the BACKUP file (.txt, or older .json) can restore. The Excel export is a report, not a backup.
+async function restoreFromText(text){
   try {
-    const text = await file.text();
+    if (/^\ufeff?"?Order date/.test(text)) throw new Error('excel');
     const data = JSON.parse(text);
     if (!data.orders || !Array.isArray(data.orders)) throw new Error('bad format');
     await idbClear('orders');
@@ -1584,13 +1623,30 @@ document.getElementById('import-file-input').addEventListener('change', async (e
       await idbPut('settings', SETTINGS);
     }
     renderMenuPickers();
-    showToast('Data restored from backup.');
+    showToast(`Data restored from backup ✅ (${ORDERS.length} orders)`, 4000);
     navigate('home');
+    return true;
   } catch(err){
-    showToast('That file could not be read. Please choose a valid backup JSON file.');
+    showToast(err && err.message === 'excel'
+      ? 'That is the Excel report. To restore, choose the BACKUP file (name ends with -backup-<date>.txt).'
+      : 'That file could not be read. Please choose your backup file (name ends with -backup-<date>.txt).', 6000);
+    return false;
   }
-  e.target.value = '';
-});
+}
+// Backup shared INTO the app from WhatsApp (long-press file → Share → Orders). Android + Chrome-installed app.
+async function checkSharedRestore(){
+  if (!/[?&]shared-restore=1/.test(location.search)) return;
+  history.replaceState(null, '', location.pathname);
+  try {
+    const cache = await caches.open('fot-shared');
+    const res = await cache.match('shared-backup');
+    if (!res) return;
+    const text = await res.text();
+    await cache.delete('shared-backup');
+    confirmModal('Restore this backup?', 'This will REPLACE all orders on this phone with the backup you shared from WhatsApp.',
+      () => restoreFromText(text), 'Restore', true);
+  } catch(e){}
+}
 
 document.getElementById('clear-data-btn').addEventListener('click', () => {
   confirmModal('Clear ALL data?', 'This will permanently delete every order on this phone. This cannot be undone. Consider backing up first.', async () => {
@@ -1603,6 +1659,7 @@ document.getElementById('clear-data-btn').addEventListener('click', () => {
 
 /* ============================= CONFIRM MODAL ================================= */
 function confirmModal(title, desc, onConfirm, confirmLabel='Confirm', danger=false){
+  document.getElementById('toast').classList.remove('show');
   const root = document.getElementById('modal-root');
   root.innerHTML = `
     <div class="modal-overlay" id="modal-overlay">
@@ -1829,6 +1886,7 @@ async function startApp(){
   try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
 
   document.getElementById('app-version-label').textContent = `App version ${APP_VERSION}`;
+  checkSharedRestore();
   backgroundRecheck();   // quiet licence check (no waiting, never blocks offline use)
 
   if (isIOS() && !isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
