@@ -351,6 +351,11 @@ nav.bottom-nav button.active{color:var(--accent);}
       <button class="btn-new-order" id="home-new-order-btn">➕ New Order</button>
       <div class="section-title">Today's Orders</div>
       <div id="home-orders-list"></div>
+      <div class="summary-card hidden" id="backup-reminder" style="margin-top:14px;border:1.5px solid var(--accent);">
+        <div style="font-weight:800;margin-bottom:4px;">💾 Back up your orders</div>
+        <div style="font-size:13px;color:var(--text-mute);margin-bottom:10px;" id="backup-reminder-text"></div>
+        <button class="btn-primary" id="backup-reminder-btn" style="margin:0;">Backup now</button>
+      </div>
     </section>
 
     <!-- ---------- NEW ORDER FORM ---------- -->
@@ -567,10 +572,14 @@ nav.bottom-nav button.active{color:var(--accent);}
 
         <div class="settings-group">
           <h3>Backup & Restore</h3>
-          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Your data lives only on this phone. Back it up regularly so you never lose it.</p>
-          <button class="btn-secondary" id="export-data-btn" style="margin-top:0;">⬇️ Backup (Export Data)</button>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:6px;">Your orders are saved only on this phone — nobody else can see them, not even us. If the phone is lost, only a backup can bring them back.</p>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;"><b>Tip:</b> tap Backup → choose <b>WhatsApp → "Message yourself"</b> or <b>Google Drive</b>. On a new phone: activate with your code, then tap Restore and pick that file.</p>
+          <p id="backup-status" style="font-size:13px;font-weight:700;margin-bottom:10px;"></p>
+          <button class="btn-secondary" id="export-data-btn" style="margin-top:0;">💾 Backup now (send to WhatsApp / Drive)</button>
           <button class="btn-secondary" id="import-data-btn">⬆️ Restore (Import Data)</button>
-          <input type="file" id="import-file-input" accept="application/json" class="hidden">
+          <input type="file" id="import-file-input" accept="application/json,.json,text/plain,*/*" class="hidden">
+          <button class="btn-secondary" id="export-csv-btn">📊 Export orders to Excel</button>
+          <p style="font-size:12px;color:var(--text-mute);margin-top:12px;" id="app-version-label"></p>
         </div>
 
         <div class="settings-group">
@@ -606,6 +615,7 @@ const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34b
 const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
+const APP_VERSION = 7;
 const SALES_WHATSAPP = '';
 // Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
 const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
@@ -759,7 +769,7 @@ function navigate(name){
   if (name === 'orders') renderAllOrders();
   if (name === 'customers') renderCustomers();
   if (name === 'reports') renderReports();
-  if (name === 'settings') renderMenuSettings();
+  if (name === 'settings'){ renderMenuSettings(); renderBackupStatus(); }
   window.scrollTo(0,0);
 }
 document.querySelectorAll('[data-nav]').forEach(el => {
@@ -782,6 +792,7 @@ window.addEventListener('offline', updateOfflineIndicator);
 
 /* ============================= HOME DASHBOARD ============================ */
 function renderHome(){
+  renderBackupStatus();
   const today = todayISO();
   const todays = ORDERS.filter(o => o.deliveryDate === today && o.status !== 'Cancelled');
   const revenue = todays.reduce((s,o) => s + o.grandTotal, 0);
@@ -1481,18 +1492,69 @@ async function loadSampleData(){
   navigate('home');
 }
 
-document.getElementById('export-data-btn').addEventListener('click', async () => {
-  const data = { exportedAt: new Date().toISOString(), orders: ORDERS, settings: SETTINGS };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+/* ============================= BACKUP (send it OFF the phone) =================
+   Opens the phone's share menu so the backup goes to WhatsApp ("Message yourself"),
+   Google Drive or email — a backup that stays on the same phone is lost with the phone.
+   Falls back to a normal download where sharing files isn't supported. */
+async function shareOrDownload(blob, filename, title){
+  const file = new File([blob], filename, { type: blob.type });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })){
+      await navigator.share({ files: [file], title, text: title });
+      return 'shared';
+    }
+  } catch(e){
+    if (e && e.name === 'AbortError') return 'cancelled';
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const stamp = todayISO();
-  a.href = url; a.download = `food-order-tracker-backup-${stamp}.json`;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return 'downloaded';
+}
+async function runBackup(){
+  const data = { app:'food-order-tracker', version:1, exportedAt: new Date().toISOString(), orders: ORDERS, settings: SETTINGS };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const name = (SETTINGS.businessName || 'my-kitchen').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30) || 'my-kitchen';
+  const res = await shareOrDownload(blob, `${name}-backup-${todayISO()}.json`, 'Food Order Tracker backup');
+  if (res === 'cancelled') return;
   SETTINGS.ordersSinceLastBackup = 0;
+  SETTINGS.lastBackupAt = Date.now();
   await idbPut('settings', SETTINGS);
-  showToast('Backup downloaded to your phone.');
+  renderBackupStatus();
+  showToast(res === 'shared' ? 'Backup sent ✅ Keep that file safe.' : 'Backup saved to your Downloads ✅ Send it to WhatsApp or Drive too.', 4500);
+}
+document.getElementById('export-data-btn').addEventListener('click', runBackup);
+
+function daysSince(ts){ return ts ? Math.floor((Date.now() - ts) / 86400000) : null; }
+function renderBackupStatus(){
+  const d = daysSince(SETTINGS.lastBackupAt);
+  const txt = d === null ? 'Never backed up' : d === 0 ? 'Last backup: today' : `Last backup: ${d} day${d === 1 ? '' : 's'} ago`;
+  const el = document.getElementById('backup-status');
+  if (el) el.textContent = txt;
+  // Home reminder: orders exist and no backup for 7+ days
+  const card = document.getElementById('backup-reminder');
+  if (card){
+    const due = ORDERS.length > 0 && (d === null || d >= 7);
+    card.classList.toggle('hidden', !due);
+    document.getElementById('backup-reminder-text').textContent = d === null
+      ? "You haven't backed up yet. If this phone is lost, your orders are lost."
+      : `Your last backup was ${d} days ago.`;
+  }
+}
+document.getElementById('backup-reminder-btn').addEventListener('click', runBackup);
+
+// Orders as a spreadsheet (opens in Excel / Google Sheets) — for the business's own records
+document.getElementById('export-csv-btn').addEventListener('click', async () => {
+  const head = ['Order date','Delivery date','Time','Customer','Phone','Type','Area/Address','Items','Total','Payment','Paid?','Status','Notes'];
+  const rows = [...ORDERS].sort((a,b) => (a.deliveryDate||'').localeCompare(b.deliveryDate||'')).map(o => [
+    o.orderDate, o.deliveryDate, o.deliveryTime, o.customerName, o.customerPhone, o.deliveryType, o.deliveryAddress,
+    (o.items||[]).map(i => `${i.dishName} x${i.qty}`).join('; '), (Number(o.grandTotal)||0).toFixed(2),
+    o.paymentMethod, o.paymentStatus, o.status, o.notes ]);
+  const esc = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
+  const csv = '﻿' + [head, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+  await shareOrDownload(new Blob([csv], { type:'text/csv' }), `orders-${todayISO()}.csv`, 'Orders (spreadsheet)');
 });
 
 document.getElementById('import-data-btn').addEventListener('click', () => {
@@ -1761,6 +1823,7 @@ async function startApp(){
   // Ask the browser to keep this app's data even when storage runs low (not auto-cleared)
   try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
 
+  document.getElementById('app-version-label').textContent = `App version ${APP_VERSION}`;
   backgroundRecheck();   // quiet licence check (no waiting, never blocks offline use)
 
   if (isIOS() && !isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
