@@ -615,7 +615,7 @@ const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34b
 const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 const SALES_WHATSAPP = '';
 // Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
 const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
@@ -1515,15 +1515,20 @@ async function shareOrDownload(blob, filename, title){
 }
 async function runBackup(){
   const data = { app:'food-order-tracker', version:1, exportedAt: new Date().toISOString(), orders: ORDERS, settings: SETTINGS };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  // Saved as a .txt file: Android's share menu refuses .json files, but accepts text files.
+  // (Restore reads both .txt and older .json backups.)
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'text/plain' });
   const name = (SETTINGS.businessName || 'my-kitchen').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30) || 'my-kitchen';
-  const res = await shareOrDownload(blob, `${name}-backup-${todayISO()}.json`, 'Food Order Tracker backup');
+  const res = await shareOrDownload(blob, `${name}-backup-${todayISO()}.txt`, 'Food Order Tracker backup');
   if (res === 'cancelled') return;
   SETTINGS.ordersSinceLastBackup = 0;
   SETTINGS.lastBackupAt = Date.now();
   await idbPut('settings', SETTINGS);
   renderBackupStatus();
-  showToast(res === 'shared' ? 'Backup sent ✅ Keep that file safe.' : 'Backup saved to your Downloads ✅ Send it to WhatsApp or Drive too.', 4500);
+  if (res === 'shared') showToast('Backup sent ✅ Keep that file safe.', 4500);
+  else confirmModal('Backup saved to Downloads ✅',
+    'To keep it safe if your phone is lost: open WhatsApp → "Message yourself" → 📎 → Document → Downloads → pick this backup file and send it.',
+    () => {}, 'OK');
 }
 document.getElementById('export-data-btn').addEventListener('click', runBackup);
 
