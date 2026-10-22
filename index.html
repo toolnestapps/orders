@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Food Order Tracker</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#E85D2C">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orders">
+<meta name="mobile-web-app-capable" content="yes">
+
+<style>
+:root{
+  --accent:#E85D2C;
+  --accent-dark:#C4471C;
+  --accent-light:#FDE6D8;
+  --teal:#2A9D8F;
+  --teal-light:#DCF2EF;
+  --bg:#FFF8F0;
+  --card:#FFFFFF;
+  --text:#2B2118;
+  --text-mute:#95816F;
+  --border:#F0E1CE;
+  --danger:#D64545;
+  --danger-light:#FBE2E2;
+  --success:#3FA45B;
+  --success-light:#DFF4E5;
+  --blue:#3B82F6;
+  --blue-light:#E1EBFE;
+  --purple:#7C5CDB;
+  --purple-light:#EAE3FB;
+  --grey:#8B8B93;
+  --grey-light:#EBEBEE;
+  --radius:18px;
+  --radius-sm:12px;
+  --shadow:0 2px 14px rgba(43,33,24,0.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overscroll-behavior-y:none;
+}
+button, input, select, textarea{font-family:inherit;}
+h1,h2,h3,p{margin:0;}
+.hidden{display:none !important;}
+
+/* ===== License Screen ===== */
+#license-screen{
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(160deg,var(--accent) 0%,var(--accent-dark) 100%);
+  color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:32px 24px; text-align:center;
+}
+.license-emoji{font-size:64px; margin-bottom:6px;}
+.license-title{font-size:28px; font-weight:800; margin-bottom:6px;}
+.license-desc{font-size:15px; opacity:.92; max-width:340px; line-height:1.5; margin-bottom:28px;}
+.license-box{background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.35); border-radius:var(--radius); padding:22px; width:100%; max-width:340px;}
+.license-box label{display:block; font-size:13px; font-weight:600; margin-bottom:8px; text-align:left; opacity:.9;}
+#license-input{
+  width:100%; padding:14px 16px; border-radius:12px; border:none; font-size:17px;
+  text-align:center; margin-bottom:12px;
+}
+.owner-input{width:100%; padding:13px 14px; border-radius:12px; border:none; font-size:16px; margin-bottom:12px; font-family:inherit;}
+#license-error{color:#FFE1D6; background:rgba(0,0,0,0.15); border-radius:10px; padding:10px; font-size:13px; margin-bottom:12px; display:none;}
+.btn-activate{
+  width:100%; padding:15px; border:none; border-radius:12px; background:#fff; color:var(--accent-dark);
+  font-size:16px; font-weight:700; cursor:pointer;
+}
+.license-footer{margin-top:22px; font-size:12px; opacity:.85;}
+
+/* ===== Install banner ===== */
+#install-banner{
+  position:fixed; top:0; left:0; right:0; z-index:500;
+  background:var(--teal); color:#fff; padding:10px 14px;
+  display:flex; align-items:center; gap:10px; font-size:13px;
+}
+#install-banner .banner-text{flex:1; line-height:1.3;}
+#install-banner button{
+  background:#fff; color:var(--teal); border:none; border-radius:8px; padding:8px 12px;
+  font-weight:700; font-size:13px; white-space:nowrap;
+}
+#install-banner .dismiss-x{background:transparent; color:#fff; padding:4px 8px; font-size:16px; font-weight:700;}
+
+/* ===== App shell ===== */
+#app{max-width:520px; margin:0 auto; padding-bottom:78px;}
+header.topbar{
+  padding:16px 16px 8px; display:flex; align-items:center; justify-content:space-between;
+}
+.topbar h1{font-size:20px; font-weight:800;}
+.topbar .date{font-size:13px; color:var(--text-mute); margin-top:2px;}
+.offline-pill{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-mute); background:#fff; border:1px solid var(--border); padding:6px 10px; border-radius:999px;}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--success); flex-shrink:0;}
+.dot.offline{background:var(--grey);}
+
+.topbar-actions{display:flex; align-items:center; gap:8px;}
+.icon-btn{width:38px; height:38px; border-radius:50%; border:none; background:var(--card); box-shadow:var(--shadow); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+.menu-row{display:grid; grid-template-columns:1fr 90px 34px; gap:8px; align-items:center; margin-bottom:8px;}
+.menu-row input{width:100%; padding:10px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; background:#fff;}
+.menu-del{border:none; background:var(--danger-light); color:var(--danger); border-radius:10px; height:38px; font-weight:800; cursor:pointer;}
+.menu-chips{display:flex; flex-wrap:wrap; gap:6px; margin:-6px 0 14px;}
+.menu-chip{border:1px solid var(--border); background:#fff; border-radius:999px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer;}
+main{padding:0 16px 24px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* Summary cards */
+.summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0 18px;}
+.summary-card{background:var(--card); border-radius:var(--radius-sm); padding:14px; box-shadow:var(--shadow);}
+.summary-card .label{font-size:12px; color:var(--text-mute); font-weight:600; margin-bottom:4px;}
+.summary-card .value{font-size:20px; font-weight:800;}
+.summary-card.warn .value{color:var(--danger);}
+
+.btn-new-order{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:16px; background:var(--success); color:#fff; border:none;
+  border-radius:var(--radius-sm); font-size:16px; font-weight:800; margin-bottom:18px;
+  box-shadow:0 4px 14px rgba(63,164,91,0.35); cursor:pointer;
+}
+
+.section-title{font-size:15px; font-weight:800; margin:18px 0 10px; display:flex; align-items:center; justify-content:space-between;}
+
+/* Order card */
+.order-card{
+  background:var(--card); border-radius:var(--radius-sm); padding:14px; margin-bottom:10px;
+  box-shadow:var(--shadow); cursor:pointer;
+}
+.order-card .row1{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+.order-card .cust{font-weight:800; font-size:15px;}
+.order-card .items-summary{font-size:13px; color:var(--text-mute); margin-top:3px;}
+.order-card .meta{display:flex; justify-content:space-between; align-items:center; margin-top:10px;}
+.order-card .time{font-size:12px; color:var(--text-mute);}
+.badges{display:flex; gap:6px; flex-wrap:wrap;}
+
+.badge{font-size:11px; font-weight:700; padding:4px 9px; border-radius:999px; white-space:nowrap;}
+.badge-New{background:var(--blue-light); color:var(--blue);}
+.badge-Confirmed{background:var(--purple-light); color:var(--purple);}
+.badge-Preparing{background:var(--accent-light); color:var(--accent-dark);}
+.badge-Ready{background:var(--success-light); color:var(--success);}
+.badge-Delivered{background:var(--grey-light); color:var(--grey);}
+.badge-Cancelled{background:var(--danger-light); color:var(--danger);}
+.badge-paid{background:var(--success-light); color:var(--success);}
+.badge-unpaid{background:var(--danger-light); color:var(--danger);}
+
+.empty-state{background:var(--card); border-radius:var(--radius); padding:32px 20px; text-align:center; box-shadow:var(--shadow);}
+.empty-state .emoji{font-size:40px; margin-bottom:10px;}
+.empty-state h3{font-size:16px; margin-bottom:6px;}
+.empty-state p{font-size:13px; color:var(--text-mute); line-height:1.5;}
+
+/* Forms */
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:13px; font-weight:700; margin-bottom:6px; color:var(--text);}
+.field .hint{font-size:11px; color:var(--text-mute); margin-top:4px;}
+input[type=text], input[type=tel], input[type=number], input[type=date], input[type=time], select, textarea{
+  width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:15px; background:#fff; color:var(--text);
+}
+textarea{resize:vertical; min-height:60px;}
+.toggle-group{display:flex; gap:8px;}
+.toggle-btn{
+  flex:1; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:#fff; text-align:center;
+  font-weight:700; font-size:14px; color:var(--text-mute); cursor:pointer;
+}
+.toggle-btn.active{border-color:var(--accent); background:var(--accent-light); color:var(--accent-dark);}
+.toggle-btn.active.pay{border-color:var(--success); background:var(--success-light); color:var(--success);}
+
+.autocomplete-wrap{position:relative;}
+.autocomplete-list{
+  position:absolute; top:100%; left:0; right:0; background:#fff; border:1.5px solid var(--border);
+  border-radius:12px; margin-top:4px; z-index:20; box-shadow:var(--shadow); max-height:180px; overflow-y:auto;
+}
+.autocomplete-item{padding:10px 14px; font-size:14px; border-bottom:1px solid var(--border); cursor:pointer;}
+.autocomplete-item:last-child{border-bottom:none;}
+.autocomplete-item b{display:block;}
+.autocomplete-item span{font-size:12px; color:var(--text-mute);}
+
+.item-row{background:var(--card); border-radius:12px; padding:12px; margin-bottom:8px; box-shadow:var(--shadow);}
+.item-row-grid{display:grid; grid-template-columns:1fr 60px 80px; gap:8px;}
+.item-row-grid input{padding:10px;}
+.item-row-total{display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:13px; color:var(--text-mute);}
+.item-row-total b{color:var(--text); font-size:14px;}
+.remove-item{background:none; border:none; color:var(--danger); font-size:12px; font-weight:700; cursor:pointer; padding:0;}
+.add-item-btn{
+  width:100%; padding:12px; border:1.5px dashed var(--accent); border-radius:12px; background:var(--accent-light);
+  color:var(--accent-dark); font-weight:700; font-size:14px; cursor:pointer; margin-bottom:16px;
+}
+.grand-total-box{
+  background:var(--text); color:#fff; border-radius:var(--radius-sm); padding:16px; display:flex; justify-content:space-between;
+  align-items:center; margin-bottom:18px;
+}
+.grand-total-box .label{font-size:13px; opacity:.8;}
+.grand-total-box .value{font-size:22px; font-weight:800;}
+
+.btn-primary{width:100%; padding:16px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); font-size:16px; font-weight:800; cursor:pointer; margin-top:6px;}
+.btn-secondary{width:100%; padding:14px; background:#fff; color:var(--text); border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;}
+.btn-danger{width:100%; padding:14px; background:var(--danger-light); color:var(--danger); border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;}
+.btn-whatsapp{width:100%; padding:15px; background:#25D366; color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:8px;}
+.btn-teal{width:100%; padding:14px; background:var(--teal-light); color:var(--teal); border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;}
+
+/* Screen header w/ back */
+.screen-head{display:flex; align-items:center; gap:10px; padding:16px 16px 4px;}
+.back-btn{background:#fff; border:1px solid var(--border); border-radius:10px; width:36px; height:36px; font-size:18px; cursor:pointer; flex-shrink:0;}
+.screen-head h2{font-size:18px; font-weight:800;}
+
+/* Search / filters */
+.search-bar{display:flex; gap:8px; margin-bottom:10px;}
+.search-bar input{flex:1;}
+.filter-row{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+.filter-row select, .filter-row input[type=date]{flex:1; min-width:120px; font-size:13px; padding:10px;}
+
+/* Prep summary */
+.prep-row{background:var(--card); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:8px; box-shadow:var(--shadow); display:flex; justify-content:space-between; align-items:center;}
+.prep-row .dish{font-weight:700; font-size:15px;}
+.prep-qty{background:var(--accent); color:#fff; font-weight:800; font-size:15px; border-radius:999px; padding:6px 14px; min-width:44px; text-align:center;}
+.prep-stats{display:flex; gap:10px; margin-bottom:16px;}
+.prep-stats .stat{flex:1; background:var(--card); border-radius:var(--radius-sm); padding:12px; text-align:center; box-shadow:var(--shadow);}
+.prep-stats .stat .n{font-size:20px; font-weight:800;}
+.prep-stats .stat .l{font-size:11px; color:var(--text-mute); font-weight:600;}
+
+/* Detail screen */
+.detail-card{background:var(--card); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); margin-bottom:14px;}
+.detail-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-row .k{color:var(--text-mute);}
+.detail-row .v{font-weight:700; text-align:right;}
+.status-steps{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+.status-step-btn{flex:1; min-width:90px; padding:11px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer;}
+
+/* Customers */
+.cust-card{background:var(--card); border-radius:var(--radius-sm); padding:14px; margin-bottom:10px; box-shadow:var(--shadow); cursor:pointer; display:flex; justify-content:space-between; align-items:center;}
+.cust-card .name{font-weight:800; font-size:15px;}
+.cust-card .sub{font-size:12px; color:var(--text-mute); margin-top:2px;}
+.cust-card .spend{font-weight:800; color:var(--accent-dark); text-align:right;}
+
+/* Reports */
+.tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--card); border-radius:12px; padding:4px; box-shadow:var(--shadow);}
+.tab-btn{flex:1; padding:9px; border:none; background:transparent; border-radius:9px; font-size:12px; font-weight:700; color:var(--text-mute); cursor:pointer;}
+.tab-btn.active{background:var(--accent); color:#fff;}
+.top-list-item{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px;}
+.top-list-item:last-child{border-bottom:none;}
+.top-list-rank{color:var(--text-mute); font-weight:700; margin-right:8px;}
+
+/* Settings */
+.settings-group{background:var(--card); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:16px;}
+.settings-group h3{font-size:14px; font-weight:800; margin-bottom:12px;}
+
+/* Bottom nav */
+nav.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:100; background:#fff; border-top:1px solid var(--border);
+  display:flex; max-width:520px; margin:0 auto; padding-bottom:env(safe-area-inset-bottom);
+}
+nav.bottom-nav button{
+  flex:1; background:none; border:none; padding:10px 2px 8px; display:flex; flex-direction:column; align-items:center;
+  gap:3px; color:var(--text-mute); font-size:10px; font-weight:700; cursor:pointer;
+}
+nav.bottom-nav button .icon{font-size:19px;}
+nav.bottom-nav button.active{color:var(--accent);}
+
+/* Toast */
+#toast{
+  position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); z-index:1000;
+  background:var(--text); color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; max-width:88%;
+  opacity:0; transition:all .25s; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.25);
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* Modal */
+.modal-overlay{position:fixed; inset:0; background:rgba(43,33,24,0.45); z-index:800; display:flex; align-items:flex-end; justify-content:center;}
+.modal-box{background:#fff; border-radius:20px 20px 0 0; padding:22px 20px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:520px;}
+.modal-box h3{font-size:17px; margin-bottom:8px;}
+.modal-box p{font-size:14px; color:var(--text-mute); line-height:1.5; margin-bottom:18px;}
+.modal-actions{display:flex; gap:10px;}
+.modal-actions button{flex:1; padding:13px; border-radius:12px; border:none; font-weight:700; font-size:14px; cursor:pointer;}
+.modal-cancel{background:var(--grey-light); color:var(--text);}
+.modal-confirm-danger{background:var(--danger); color:#fff;}
+.modal-confirm{background:var(--accent); color:#fff;}
+
+@media print{
+  #install-banner, nav.bottom-nav, header.topbar, .screen-head .back-btn, .btn-secondary, .no-print{display:none !important;}
+  body{background:#fff;}
+  .prep-row{box-shadow:none; border:1px solid #ccc;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LICENSE / ACTIVATION SCREEN ===================== -->
+<div id="license-screen">
+  <div class="license-emoji">🍲</div>
+  <div class="license-title">Food Order Tracker</div>
+  <div class="license-desc">
+    Keep track of every WhatsApp order, know exactly what to cook today, and never lose a customer's details — all stored privately on your phone.
+  </div>
+  <div class="license-box hidden" id="owner-box">
+    <p style="margin:0 0 12px;font-size:14px;font-weight:700;">✅ Code accepted! One last step.</p>
+    <label for="owner-name">Your business name (shown on customer messages)</label>
+    <input type="text" id="owner-name" class="owner-input" placeholder="e.g. Layla's Kitchen" maxlength="40" autocomplete="organization">
+    <label for="owner-phone">Your WhatsApp number</label>
+    <input type="tel" id="owner-phone" class="owner-input" placeholder="05X XXX XXXX" autocomplete="tel">
+    <div id="owner-error" style="display:none;color:#FFE1D6;background:rgba(0,0,0,0.15);border-radius:10px;padding:10px;font-size:13px;margin-bottom:12px;">Please enter your business name and a valid phone number.</div>
+    <p style="margin:0 0 12px;font-size:12px;opacity:.9;">This can't be changed later, so please check the spelling.</p>
+    <button class="btn-activate" id="owner-save-btn">Start using the app</button>
+  </div>
+  <div class="license-box" id="license-box">
+    <label for="license-input">Paste your activation code</label>
+    <input type="text" id="license-input" placeholder="Paste the code from WhatsApp" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div id="license-error">That code isn't valid. Copy the whole code from your WhatsApp message and try again.</div>
+    <button class="btn-activate" id="activate-btn">Activate App</button>
+  </div>
+  <a id="buy-license-btn" class="license-footer hidden" style="display:block;margin-top:14px;font-weight:700;color:#fff;" href="#">Don't have a code? Buy on WhatsApp →</a>
+  <div class="license-footer">Bought already? Your activation code was sent to you on WhatsApp.</div>
+</div>
+
+<!-- ===================== INSTALL BANNER ===================== -->
+<div id="install-banner" class="hidden">
+  <span class="banner-text" id="install-banner-text">Install this app on your phone for easy access</span>
+  <button id="install-btn">Install</button>
+  <button class="dismiss-x" id="install-dismiss">✕</button>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" class="hidden">
+
+  <header class="topbar">
+    <div>
+      <h1 id="header-title">Home</h1>
+      <div class="date" id="header-date"></div>
+    </div>
+    <div class="topbar-actions">
+      <div class="offline-pill"><span class="dot" id="offline-dot"></span><span id="offline-text">Online</span></div>
+      <button class="icon-btn" data-nav="customers" title="Customers" aria-label="Customers">👥</button>
+      <button class="icon-btn" data-nav="settings" title="Settings" aria-label="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ---------- HOME DASHBOARD ---------- -->
+    <section class="screen active" id="screen-home">
+      <div class="summary-grid">
+        <div class="summary-card"><div class="label">Today's Orders</div><div class="value" id="stat-today-count">0</div></div>
+        <div class="summary-card"><div class="label">Today's Revenue</div><div class="value" id="stat-today-revenue">AED 0.00</div></div>
+        <div class="summary-card warn"><div class="label">Unpaid Amount</div><div class="value" id="stat-unpaid">AED 0.00</div></div>
+        <div class="summary-card"><div class="label">Pending Delivery</div><div class="value" id="stat-pending">0</div></div>
+      </div>
+      <button class="btn-new-order" id="home-new-order-btn">➕ New Order</button>
+      <div class="section-title">Today's Orders</div>
+      <div id="home-orders-list"></div>
+    </section>
+
+    <!-- ---------- NEW ORDER FORM ---------- -->
+    <section class="screen" id="screen-neworder">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2 id="order-form-title">New Order</h2>
+      </div>
+      <form id="order-form" style="padding:14px 0 0;">
+        <div class="field autocomplete-wrap">
+          <label>Phone Number</label>
+          <input type="tel" id="f-phone" placeholder="e.g. 050 123 4567" autocomplete="off">
+          <div class="hint">UAE format: 05X XXX XXXX</div>
+          <div class="autocomplete-list hidden" id="phone-suggestions"></div>
+        </div>
+        <div class="field">
+          <label>Customer Name</label>
+          <input type="text" id="f-name" placeholder="Customer's name">
+        </div>
+        <div class="field">
+          <label>Delivery Date</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label>Delivery Time</label>
+          <input type="time" id="f-time">
+        </div>
+        <div class="field">
+          <label>Delivery Type</label>
+          <div class="toggle-group">
+            <div class="toggle-btn active" data-type="Delivery" id="type-delivery">🚗 Delivery</div>
+            <div class="toggle-btn" data-type="Pickup" id="type-pickup">🏠 Pickup</div>
+          </div>
+        </div>
+        <div class="field" id="address-field">
+          <label>Area / Address</label>
+          <textarea id="f-address" placeholder="e.g. Al Barsha, near Mall of Emirates"></textarea>
+        </div>
+
+        <div class="section-title">Order Items</div>
+        <div id="item-rows"></div>
+        <button type="button" class="add-item-btn" id="add-item-btn">+ Add Dish</button>
+        <div class="menu-chips" id="menu-chips"></div>
+        <datalist id="menu-datalist"></datalist>
+
+        <div class="grand-total-box">
+          <span class="label">Grand Total</span>
+          <span class="value" id="grand-total-display">AED 0.00</span>
+        </div>
+
+        <div class="field">
+          <label>Payment Status</label>
+          <div class="toggle-group">
+            <div class="toggle-btn active pay" data-pay="Unpaid" id="pay-unpaid">Unpaid</div>
+            <div class="toggle-btn" data-pay="Paid" id="pay-paid">Paid</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Payment Method</label>
+          <select id="f-paymethod">
+            <option>Cash</option>
+            <option>Bank Transfer</option>
+            <option>Card</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Special Notes</label>
+          <textarea id="f-notes" placeholder="e.g. less spicy, no onions"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" id="save-order-btn">Save Order</button>
+        <button type="button" class="btn-secondary" data-nav="home">Cancel</button>
+      </form>
+    </section>
+
+    <!-- ---------- PREP SUMMARY ---------- -->
+    <section class="screen" id="screen-prep">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2>Today's Prep Summary</h2>
+      </div>
+      <div style="padding-top:14px;">
+        <div class="prep-stats">
+          <div class="stat"><div class="n" id="prep-deliveries">0</div><div class="l">DELIVERIES</div></div>
+          <div class="stat"><div class="n" id="prep-pickups">0</div><div class="l">PICKUPS</div></div>
+          <div class="stat"><div class="n" id="prep-orders">0</div><div class="l">TOTAL ORDERS</div></div>
+        </div>
+        <div id="prep-list"></div>
+        <button class="btn-secondary no-print" id="print-prep-btn">🖨️ Print This Screen</button>
+      </div>
+    </section>
+
+    <!-- ---------- ALL ORDERS ---------- -->
+    <section class="screen" id="screen-orders">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2>All Orders</h2>
+      </div>
+      <div style="padding-top:14px;">
+        <div class="search-bar">
+          <input type="text" id="orders-search" placeholder="Search name or phone...">
+        </div>
+        <div class="filter-row">
+          <select id="filter-status">
+            <option value="">All Status</option>
+            <option>New</option><option>Confirmed</option><option>Preparing</option>
+            <option>Ready</option><option>Delivered</option><option>Cancelled</option>
+          </select>
+          <select id="filter-payment">
+            <option value="">All Payments</option>
+            <option>Paid</option><option>Unpaid</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <input type="date" id="filter-from" title="From date">
+          <input type="date" id="filter-to" title="To date">
+        </div>
+        <div id="all-orders-list"></div>
+      </div>
+    </section>
+
+    <!-- ---------- ORDER DETAIL ---------- -->
+    <section class="screen" id="screen-detail">
+      <div class="screen-head">
+        <button class="back-btn" id="detail-back-btn">←</button>
+        <h2>Order Detail</h2>
+      </div>
+      <div style="padding-top:14px;" id="detail-content"></div>
+    </section>
+
+    <!-- ---------- CUSTOMERS ---------- -->
+    <section class="screen" id="screen-customers">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2>Customers</h2>
+      </div>
+      <div style="padding-top:14px;">
+        <div class="search-bar"><input type="text" id="customers-search" placeholder="Search customers..."></div>
+        <div id="customers-list"></div>
+      </div>
+    </section>
+
+    <!-- ---------- CUSTOMER HISTORY ---------- -->
+    <section class="screen" id="screen-customer-history">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="customers">←</button>
+        <h2 id="cust-history-name">Customer</h2>
+      </div>
+      <div style="padding-top:14px;" id="cust-history-content"></div>
+    </section>
+
+    <!-- ---------- REPORTS ---------- -->
+    <section class="screen" id="screen-reports">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2>Reports</h2>
+      </div>
+      <div style="padding-top:14px;">
+        <div class="tabs">
+          <button class="tab-btn active" data-range="today">Today</button>
+          <button class="tab-btn" data-range="week">Week</button>
+          <button class="tab-btn" data-range="month">Month</button>
+          <button class="tab-btn" data-range="all">All Time</button>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="label">Revenue</div><div class="value" id="rep-revenue">AED 0.00</div></div>
+          <div class="summary-card"><div class="label">Orders</div><div class="value" id="rep-orders">0</div></div>
+          <div class="summary-card"><div class="label">Avg. Order Value</div><div class="value" id="rep-avg">AED 0.00</div></div>
+          <div class="summary-card warn"><div class="label">Unpaid Total</div><div class="value" id="rep-unpaid-total">AED 0.00</div></div>
+        </div>
+        <div class="section-title">Top 5 Dishes</div>
+        <div class="settings-group" id="rep-top-dishes"></div>
+        <div class="section-title">Top 5 Customers</div>
+        <div class="settings-group" id="rep-top-customers"></div>
+        <div class="section-title">Unpaid Orders</div>
+        <div class="settings-group" id="rep-unpaid-list"></div>
+      </div>
+    </section>
+
+    <!-- ---------- SETTINGS ---------- -->
+    <section class="screen" id="screen-settings">
+      <div class="screen-head">
+        <button class="back-btn" data-nav="home">←</button>
+        <h2>Settings</h2>
+      </div>
+      <div style="padding-top:14px;">
+        <div class="settings-group">
+          <h3>Business Info</h3>
+          <p id="license-info" style="font-size:12px;color:var(--text-mute);margin-bottom:10px;"></p>
+          <div class="field"><label>Business Name</label><input type="text" id="set-business-name" placeholder="e.g. Layla's Kitchen"></div>
+          <div class="field"><label>Owner Phone Number</label><input type="tel" id="set-owner-phone" placeholder="05X XXX XXXX"></div>
+          <div class="field" style="margin-bottom:0;"><label>Default Currency</label>
+            <select id="set-currency"><option>AED</option><option>SAR</option><option>USD</option><option>OMR</option><option>KWD</option></select>
+          </div>
+          <button class="btn-primary" id="save-settings-btn" style="margin-top:16px;">Save Settings</button>
+        </div>
+
+        <div class="settings-group">
+          <h3>My Menu (Saved Dishes)</h3>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Saved dishes appear as quick-pick buttons on New Order and fill the price automatically. New dishes you type in orders are added here too.</p>
+          <div id="menu-list"></div>
+          <div class="menu-row">
+            <input type="text" id="menu-new-name" placeholder="Dish name">
+            <input type="number" id="menu-new-price" placeholder="Price" min="0" step="0.01">
+            <button type="button" class="menu-del" id="menu-add-btn" style="background:var(--accent-light);color:var(--accent-dark);">+</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Sample Data</h3>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Load 5 example orders to explore the app.</p>
+          <button class="btn-teal" id="load-sample-btn">Load Sample Data</button>
+        </div>
+
+        <div class="settings-group">
+          <h3>Backup & Restore</h3>
+          <p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Your data lives only on this phone. Back it up regularly so you never lose it.</p>
+          <button class="btn-secondary" id="export-data-btn" style="margin-top:0;">⬇️ Backup (Export Data)</button>
+          <button class="btn-secondary" id="import-data-btn">⬆️ Restore (Import Data)</button>
+          <input type="file" id="import-file-input" accept="application/json" class="hidden">
+        </div>
+
+        <div class="settings-group">
+          <h3>Danger Zone</h3>
+          <button class="btn-danger" id="clear-data-btn">Clear All Data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="bottom-nav hidden" id="bottom-nav">
+  <button data-nav="home" class="active"><span class="icon">🏠</span>Home</button>
+  <button data-nav="neworder"><span class="icon">➕</span>New</button>
+  <button data-nav="prep"><span class="icon">👩‍🍳</span>Prep</button>
+  <button data-nav="orders"><span class="icon">📋</span>Orders</button>
+  <button data-nav="reports"><span class="icon">📊</span>Reports</button>
+</nav>
+
+<div id="toast"></div>
+<div id="modal-root"></div>
+
+<script>
+/* =========================================================================
+   LICENCES — signed activation codes (no server, no third party)
+   Each code = <details>.<signature>. The details hold the buyer's business
+   name + phone. The signature is made with the seller's PRIVATE key, which
+   never leaves the seller's computer. This app only holds the PUBLIC key
+   below: it can CHECK codes but cannot CREATE them, so publishing it is safe.
+   ========================================================================= */
+const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34bPMdFCHS1OGN-RWqwT7tfE","y":"E1zReTnOMbVTKoTjOiETHwXK5XhzIlA2dOszrgF9Llk"};
+// Licence IDs to block (e.g. refunded or leaked codes). Add the ID shown in your generator log.
+const REVOKED_LICENSE_IDS = [];
+// Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
+// Leave '' to hide the "Buy a licence" button.
+const SALES_WHATSAPP = '';
+
+function b64urlToBytes(s){
+  s = s.replace(/-/g,'+').replace(/_/g,'/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+// Pulls the code out of whatever the customer pasted: the bare code, the whole link, or the whole WhatsApp message.
+function extractLicenseCode(raw){
+  const m = String(raw||'').match(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{60,}/);
+  return m ? m[0] : '';
+}
+// Returns the licence details if the code is genuine, otherwise null.
+async function verifyLicenseCode(raw){
+  try {
+    const code = extractLicenseCode(raw);
+    if (!code) return null;
+    const [p, s] = code.split('.');
+    const key = await crypto.subtle.importKey('jwk', LICENSE_PUBLIC_KEY, { name:'ECDSA', namedCurve:'P-256' }, false, ['verify']);
+    const ok = await crypto.subtle.verify({ name:'ECDSA', hash:'SHA-256' }, key, b64urlToBytes(s), new TextEncoder().encode(p));
+    if (!ok) return null;
+    const data = JSON.parse(new TextDecoder().decode(b64urlToBytes(p)));
+    // Named codes carry b (business). Ready-made batch codes don't: the buyer enters her
+    // business name once on activation and it is locked on that phone.
+    if (!data || data.v !== 1 || !data.id) return null;
+    if (REVOKED_LICENSE_IDS.includes(data.id)) return null;
+    return { code, ...data };
+  } catch(e){ return null; }
+}
+let LICENSE = null; // details of the active licence (b = business name, p = phone, id, d = issue date)
+
+/* ========================= INDEXEDDB LAYER ============================= */
+const DB_NAME = 'FoodOrderTrackerDB';
+const DB_VERSION = 1;
+let _dbPromise = null;
+
+function openDB(){
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('orders')) db.createObjectStore('orders', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return _dbPromise;
+}
+function idbGetAll(store){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const r = tx.objectStore(store).getAll();
+    r.onsuccess = () => resolve(r.result || []);
+    r.onerror = () => reject(r.error);
+  }));
+}
+function idbGet(store, key){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const r = tx.objectStore(store).get(key);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  }));
+}
+function idbPut(store, value){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(value);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function idbDelete(store, key){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function idbClear(store){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+/* ============================= STATE ==================================== */
+let ORDERS = [];               // cached in memory, synced with IndexedDB
+let SETTINGS = { key:'app', businessName:'', ownerPhone:'', currency:'AED', ordersSinceLastBackup:0, menu:[] };
+let currentDetailOrderId = null;
+let currentEditOrderId = null;
+let currentCustomerPhone = null;
+let reportRange = 'today';
+let deferredInstallPrompt = null;
+
+/* ============================= HELPERS =================================== */
+function uid(){ return 'o_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8); }
+function money(n){ return `${SETTINGS.currency} ${(Number(n)||0).toFixed(2)}`; }
+// Local calendar date (not UTC) — toISOString() would roll back a day between 00:00 and 04:00 in Dubai.
+function localISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function todayISO(){ return localISO(new Date()); }
+function isToday(dateStr){ return dateStr === todayISO(); }
+function fmtDateNice(dateStr){
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+function fmtTimeNice(t){
+  if (!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const hh = ((h+11)%12)+1;
+  return `${hh}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function normalizePhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function itemsSummaryText(items){ return items.map(i => `${i.dishName} x${i.qty}`).join(', '); }
+function showToast(msg, duration=2600){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================= NAVIGATION ================================ */
+const SCREEN_TITLES = { home:'Home', neworder:'New Order', prep:"Today's Prep", orders:'All Orders', reports:'Reports', settings:'Settings', customers:'Customers', detail:'Order Detail', 'customer-history':'Customer' };
+
+function navigate(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + name);
+  if (target) target.classList.add('active');
+
+  document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
+  document.getElementById('header-title').textContent = SCREEN_TITLES[name] || 'Food Order Tracker';
+
+  if (name === 'home') renderHome();
+  if (name === 'prep') renderPrep();
+  if (name === 'orders') renderAllOrders();
+  if (name === 'customers') renderCustomers();
+  if (name === 'reports') renderReports();
+  if (name === 'settings') renderMenuSettings();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('[data-nav]').forEach(el => {
+  // "New" must reset the form (fresh item row + today's date), not just show the screen
+  el.addEventListener('click', () => el.dataset.nav === 'neworder' ? openNewOrderForm() : navigate(el.dataset.nav));
+});
+
+/* ============================= HEADER: date + offline ==================== */
+function renderHeaderDate(){
+  const d = new Date();
+  document.getElementById('header-date').textContent = d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function updateOfflineIndicator(){
+  const online = navigator.onLine;
+  document.getElementById('offline-dot').classList.toggle('offline', !online);
+  document.getElementById('offline-text').textContent = online ? 'Online' : 'Working Offline';
+}
+window.addEventListener('online', updateOfflineIndicator);
+window.addEventListener('offline', updateOfflineIndicator);
+
+/* ============================= HOME DASHBOARD ============================ */
+function renderHome(){
+  const today = todayISO();
+  const todays = ORDERS.filter(o => o.deliveryDate === today && o.status !== 'Cancelled');
+  const revenue = todays.reduce((s,o) => s + o.grandTotal, 0);
+  const unpaidTotal = ORDERS.filter(o => o.paymentStatus === 'Unpaid' && o.status !== 'Cancelled')
+                            .reduce((s,o) => s + o.grandTotal, 0);
+  const pending = todays.filter(o => ['New','Confirmed','Preparing','Ready'].includes(o.status)).length;
+
+  document.getElementById('stat-today-count').textContent = todays.length;
+  document.getElementById('stat-today-revenue').textContent = money(revenue);
+  document.getElementById('stat-unpaid').textContent = money(unpaidTotal);
+  document.getElementById('stat-pending').textContent = pending;
+
+  const list = document.getElementById('home-orders-list');
+  if (ORDERS.length === 0){
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">👋</div>
+        <h3>Welcome! Let's get started</h3>
+        <p>You don't have any orders yet. Tap "+ New Order" above to add your first one, or load sample data from Settings to explore the app.</p>
+      </div>`;
+    return;
+  }
+  if (todays.length === 0){
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">☕</div>
+        <h3>No orders for today yet</h3>
+        <p>New orders you add for today's delivery date will show up here.</p>
+      </div>`;
+    return;
+  }
+  const sorted = [...todays].sort((a,b) => (a.deliveryTime||'').localeCompare(b.deliveryTime||''));
+  list.innerHTML = sorted.map(orderCardHtml).join('');
+  list.querySelectorAll('.order-card').forEach(el => {
+    el.addEventListener('click', () => openOrderDetail(el.dataset.id));
+  });
+}
+function orderCardHtml(o){
+  return `
+    <div class="order-card" data-id="${o.id}">
+      <div class="row1">
+        <div>
+          <div class="cust">${escapeHtml(o.customerName)}</div>
+          <div class="items-summary">${escapeHtml(itemsSummaryText(o.items))}</div>
+        </div>
+        <div style="font-weight:800;">${money(o.grandTotal)}</div>
+      </div>
+      <div class="meta">
+        <div class="time">${o.deliveryType === 'Delivery' ? '🚗' : '🏠'} ${fmtTimeNice(o.deliveryTime)}</div>
+        <div class="badges">
+          <span class="badge badge-${o.status}">${o.status}</span>
+          <span class="badge ${o.paymentStatus === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${o.paymentStatus}</span>
+        </div>
+      </div>
+    </div>`;
+}
+document.getElementById('home-new-order-btn').addEventListener('click', () => openNewOrderForm());
+
+/* ============================= NEW ORDER FORM ============================ */
+let itemRowCounter = 0;
+function newItemRowHtml(id, dishName='', qty=1, unitPrice=''){
+  return `
+    <div class="item-row" data-row="${id}">
+      <div class="item-row-grid">
+        <input type="text" placeholder="Dish name" class="row-dish" list="menu-datalist" autocomplete="off" value="${escapeHtml(dishName)}">
+        <input type="number" placeholder="Qty" min="1" class="row-qty" value="${qty}">
+        <input type="number" placeholder="Price" min="0" step="0.01" class="row-price" value="${unitPrice}">
+      </div>
+      <div class="item-row-total">
+        <span>Line total</span>
+        <span><b class="row-total-display">${money(0)}</b> <button type="button" class="remove-item">Remove</button></span>
+      </div>
+    </div>`;
+}
+function addItemRow(dishName='', qty=1, unitPrice=''){
+  itemRowCounter++;
+  const wrap = document.getElementById('item-rows');
+  const div = document.createElement('div');
+  div.innerHTML = newItemRowHtml(itemRowCounter, dishName, qty, unitPrice);
+  const rowEl = div.firstElementChild;
+  wrap.appendChild(rowEl);
+  bindItemRow(rowEl);
+  recalcGrandTotal();
+}
+function bindItemRow(rowEl){
+  const recalcRow = () => {
+    const qty = parseFloat(rowEl.querySelector('.row-qty').value) || 0;
+    const price = parseFloat(rowEl.querySelector('.row-price').value) || 0;
+    rowEl.querySelector('.row-total-display').textContent = money(qty * price);
+    recalcGrandTotal();
+  };
+  rowEl.querySelector('.row-qty').addEventListener('input', recalcRow);
+  rowEl.querySelector('.row-price').addEventListener('input', recalcRow);
+  rowEl.querySelector('.row-dish').addEventListener('input', () => {
+    // Auto-fill price from saved menu when the price box is still empty
+    const m = findMenuItem(rowEl.querySelector('.row-dish').value);
+    const priceEl = rowEl.querySelector('.row-price');
+    if (m && priceEl.value === ''){ priceEl.value = m.price; recalcRow(); return; }
+    recalcGrandTotal();
+  });
+  rowEl.querySelector('.remove-item').addEventListener('click', () => {
+    if (document.querySelectorAll('#item-rows .item-row').length <= 1){
+      showToast('An order needs at least one item.');
+      return;
+    }
+    rowEl.remove();
+    recalcGrandTotal();
+  });
+}
+function recalcGrandTotal(){
+  let total = 0;
+  document.querySelectorAll('#item-rows .item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.row-price').value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('grand-total-display').textContent = money(total);
+}
+document.getElementById('add-item-btn').addEventListener('click', () => addItemRow());
+
+/* ============================= SAVED MENU ================================= */
+function getMenu(){ return Array.isArray(SETTINGS.menu) ? SETTINGS.menu : []; }
+function findMenuItem(name){
+  const n = (name||'').trim().toLowerCase();
+  return n ? getMenu().find(m => m.name.toLowerCase() === n) : null;
+}
+async function saveMenu(menu){
+  SETTINGS.menu = menu.sort((a,b) => a.name.localeCompare(b.name));
+  await idbPut('settings', SETTINGS);
+  renderMenuPickers();
+}
+// Adds dishes from a saved order that are not on the menu yet (keeps existing prices).
+async function learnDishes(items){
+  const menu = [...getMenu()];
+  let changed = false;
+  items.forEach(it => {
+    if (!menu.some(m => m.name.toLowerCase() === it.dishName.toLowerCase())){
+      menu.push({ name: it.dishName, price: Number(it.unitPrice)||0 });
+      changed = true;
+    }
+  });
+  if (changed) await saveMenu(menu);
+}
+function renderMenuPickers(){
+  const menu = getMenu();
+  document.getElementById('menu-datalist').innerHTML = menu.map(m => `<option value="${escapeHtml(m.name)}">`).join('');
+  const chips = document.getElementById('menu-chips');
+  chips.innerHTML = menu.map((m,i) => `<button type="button" class="menu-chip" data-i="${i}">+ ${escapeHtml(m.name)} · ${money(m.price)}</button>`).join('');
+  chips.querySelectorAll('.menu-chip').forEach(btn => btn.addEventListener('click', () => {
+    const m = getMenu()[Number(btn.dataset.i)];
+    if (!m) return;
+    // Reuse an empty row if there is one, otherwise add a new row
+    const emptyRow = [...document.querySelectorAll('#item-rows .item-row')].find(r => !r.querySelector('.row-dish').value.trim());
+    if (emptyRow){
+      emptyRow.querySelector('.row-dish').value = m.name;
+      emptyRow.querySelector('.row-price').value = m.price;
+      emptyRow.querySelector('.row-qty').dispatchEvent(new Event('input'));
+    } else {
+      addItemRow(m.name, 1, m.price);
+      const last = document.querySelector('#item-rows .item-row:last-child');
+      if (last) last.querySelector('.row-qty').dispatchEvent(new Event('input'));
+    }
+  }));
+}
+function renderMenuSettings(){
+  const menu = getMenu();
+  const list = document.getElementById('menu-list');
+  list.innerHTML = menu.length ? menu.map((m,i) => `
+    <div class="menu-row" data-i="${i}">
+      <input type="text" class="menu-name" value="${escapeHtml(m.name)}">
+      <input type="number" class="menu-price" min="0" step="0.01" value="${Number(m.price)||0}">
+      <button type="button" class="menu-del" title="Remove">✕</button>
+    </div>`).join('') : `<p style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">No saved dishes yet.</p>`;
+  list.querySelectorAll('.menu-row').forEach(row => {
+    const i = Number(row.dataset.i);
+    const commit = async () => {
+      const menu = [...getMenu()];
+      const name = row.querySelector('.menu-name').value.trim();
+      if (!name){ showToast('Dish name cannot be empty.'); renderMenuSettings(); return; }
+      menu[i] = { name, price: parseFloat(row.querySelector('.menu-price').value) || 0 };
+      await saveMenu(menu);
+      renderMenuSettings();
+      showToast('Menu updated.');
+    };
+    row.querySelector('.menu-name').addEventListener('change', commit);
+    row.querySelector('.menu-price').addEventListener('change', commit);
+    row.querySelector('.menu-del').addEventListener('click', async () => {
+      const menu = getMenu().filter((_,j) => j !== i);
+      await saveMenu(menu);
+      renderMenuSettings();
+      showToast('Dish removed from menu.');
+    });
+  });
+}
+document.getElementById('menu-add-btn').addEventListener('click', async () => {
+  const nameEl = document.getElementById('menu-new-name');
+  const priceEl = document.getElementById('menu-new-price');
+  const name = nameEl.value.trim();
+  if (!name){ showToast('Enter a dish name.'); return; }
+  if (findMenuItem(name)){ showToast('That dish is already on your menu.'); return; }
+  await saveMenu([...getMenu(), { name, price: parseFloat(priceEl.value) || 0 }]);
+  nameEl.value = ''; priceEl.value = '';
+  renderMenuSettings();
+  showToast('Dish added to menu.');
+});
+
+function collectItemsFromForm(){
+  const items = [];
+  document.querySelectorAll('#item-rows .item-row').forEach(row => {
+    const dishName = row.querySelector('.row-dish').value.trim();
+    const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+    const unitPrice = parseFloat(row.querySelector('.row-price').value) || 0;
+    if (dishName && qty > 0){
+      items.push({ dishName, qty, unitPrice, lineTotal: qty * unitPrice });
+    }
+  });
+  return items;
+}
+
+// Delivery type toggle
+document.getElementById('type-delivery').addEventListener('click', () => setDeliveryType('Delivery'));
+document.getElementById('type-pickup').addEventListener('click', () => setDeliveryType('Pickup'));
+function setDeliveryType(type){
+  document.getElementById('type-delivery').classList.toggle('active', type === 'Delivery');
+  document.getElementById('type-pickup').classList.toggle('active', type === 'Pickup');
+  document.getElementById('address-field').classList.toggle('hidden', type !== 'Delivery');
+}
+// Payment toggle
+document.getElementById('pay-unpaid').addEventListener('click', () => setPayStatus('Unpaid'));
+document.getElementById('pay-paid').addEventListener('click', () => setPayStatus('Paid'));
+function setPayStatus(status){
+  document.getElementById('pay-unpaid').classList.toggle('active', status === 'Unpaid');
+  document.getElementById('pay-paid').classList.toggle('active', status === 'Paid');
+}
+function getSelectedDeliveryType(){ return document.getElementById('type-delivery').classList.contains('active') ? 'Delivery' : 'Pickup'; }
+function getSelectedPayStatus(){ return document.getElementById('pay-paid').classList.contains('active') ? 'Paid' : 'Unpaid'; }
+
+// Repeat-customer autocomplete
+const phoneInput = document.getElementById('f-phone');
+const suggBox = document.getElementById('phone-suggestions');
+phoneInput.addEventListener('input', () => {
+  const q = normalizePhone(phoneInput.value);
+  if (q.length < 3){ suggBox.classList.add('hidden'); suggBox.innerHTML=''; return; }
+  const seen = new Set();
+  const matches = [];
+  for (const o of ORDERS){
+    const np = normalizePhone(o.customerPhone);
+    if (np && np.includes(q) && !seen.has(np)){
+      seen.add(np);
+      matches.push({ name:o.customerName, phone:o.customerPhone });
+    }
+    if (matches.length >= 6) break;
+  }
+  if (matches.length === 0){ suggBox.classList.add('hidden'); suggBox.innerHTML=''; return; }
+  suggBox.innerHTML = matches.map(m => `<div class="autocomplete-item" data-phone="${escapeHtml(m.phone)}" data-name="${escapeHtml(m.name)}"><b>${escapeHtml(m.name)}</b><span>${escapeHtml(m.phone)}</span></div>`).join('');
+  suggBox.classList.remove('hidden');
+  suggBox.querySelectorAll('.autocomplete-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.getElementById('f-phone').value = item.dataset.phone;
+      document.getElementById('f-name').value = item.dataset.name;
+      suggBox.classList.add('hidden');
+    });
+  });
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.autocomplete-wrap')) suggBox.classList.add('hidden');
+});
+
+function openNewOrderForm(prefill=null, editId=null){
+  currentEditOrderId = editId;
+  document.getElementById('order-form-title').textContent = editId ? 'Edit Order' : 'New Order';
+  document.getElementById('save-order-btn').textContent = editId ? 'Update Order' : 'Save Order';
+  document.getElementById('item-rows').innerHTML = '';
+
+  if (prefill){
+    document.getElementById('f-phone').value = prefill.customerPhone || '';
+    document.getElementById('f-name').value = prefill.customerName || '';
+    document.getElementById('f-date').value = prefill.deliveryDate || todayISO();
+    document.getElementById('f-time').value = prefill.deliveryTime || '';
+    setDeliveryType(prefill.deliveryType || 'Delivery');
+    document.getElementById('f-address').value = prefill.deliveryAddress || '';
+    setPayStatus(prefill.paymentStatus || 'Unpaid');
+    document.getElementById('f-paymethod').value = prefill.paymentMethod || 'Cash';
+    document.getElementById('f-notes').value = prefill.notes || '';
+    (prefill.items && prefill.items.length ? prefill.items : [{}]).forEach(it => addItemRow(it.dishName||'', it.qty||1, it.unitPrice||''));
+  } else {
+    document.getElementById('order-form').reset();
+    document.getElementById('f-date').value = todayISO();
+    setDeliveryType('Delivery');
+    setPayStatus('Unpaid');
+    addItemRow();
+  }
+  navigate('neworder');
+}
+
+document.getElementById('order-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const customerName = document.getElementById('f-name').value.trim();
+  const customerPhone = document.getElementById('f-phone').value.trim();
+  const deliveryDate = document.getElementById('f-date').value;
+  const deliveryTime = document.getElementById('f-time').value;
+  const deliveryType = getSelectedDeliveryType();
+  const deliveryAddress = document.getElementById('f-address').value.trim();
+  const items = collectItemsFromForm();
+
+  if (!customerName){ showToast('Please enter the customer name.'); return; }
+  if (!deliveryDate){ showToast('Please pick a delivery date.'); return; }
+  if (items.length === 0){ showToast('Add at least one dish with quantity and price.'); return; }
+  if (deliveryType === 'Delivery' && !deliveryAddress){ showToast('Please add the delivery area/address.'); return; }
+
+  const grandTotal = items.reduce((s,i) => s + i.lineTotal, 0);
+  const now = Date.now();
+
+  if (currentEditOrderId){
+    const existing = ORDERS.find(o => o.id === currentEditOrderId);
+    const updated = {
+      ...existing,
+      customerName, customerPhone, deliveryDate, deliveryTime, deliveryType, deliveryAddress,
+      items, grandTotal,
+      paymentStatus: getSelectedPayStatus(),
+      paymentMethod: document.getElementById('f-paymethod').value,
+      notes: document.getElementById('f-notes').value.trim(),
+      updatedAt: now
+    };
+    await idbPut('orders', updated);
+    const idx = ORDERS.findIndex(o => o.id === currentEditOrderId);
+    ORDERS[idx] = updated;
+    await learnDishes(items);
+    showToast('Order updated.');
+    currentEditOrderId = null;
+    openOrderDetail(updated.id);
+  } else {
+    const order = {
+      id: uid(),
+      customerName, customerPhone, deliveryDate, deliveryTime, deliveryType, deliveryAddress,
+      items, grandTotal,
+      orderDate: todayISO(),
+      status: 'New',
+      paymentStatus: getSelectedPayStatus(),
+      paymentMethod: document.getElementById('f-paymethod').value,
+      notes: document.getElementById('f-notes').value.trim(),
+      createdAt: now, updatedAt: now
+    };
+    await idbPut('orders', order);
+    ORDERS.push(order);
+    await learnDishes(items);
+    showToast('Order saved!');
+    await bumpBackupCounter();
+    navigate('home');
+  }
+});
+
+async function bumpBackupCounter(){
+  SETTINGS.ordersSinceLastBackup = (SETTINGS.ordersSinceLastBackup || 0) + 1;
+  await idbPut('settings', SETTINGS);
+  if (SETTINGS.ordersSinceLastBackup >= 10){
+    showToast('💾 Tip: Back up your data so you never lose it. See Settings → Backup.', 4500);
+    SETTINGS.ordersSinceLastBackup = 0;
+    await idbPut('settings', SETTINGS);
+  }
+}
+
+/* ============================= PREP SUMMARY =============================== */
+function renderPrep(){
+  const today = todayISO();
+  const todays = ORDERS.filter(o => o.deliveryDate === today && o.status !== 'Cancelled');
+  const dishMap = new Map();
+  todays.forEach(o => o.items.forEach(it => {
+    dishMap.set(it.dishName, (dishMap.get(it.dishName) || 0) + Number(it.qty));
+  }));
+  const sorted = [...dishMap.entries()].sort((a,b) => b[1]-a[1]);
+
+  document.getElementById('prep-deliveries').textContent = todays.filter(o => o.deliveryType === 'Delivery').length;
+  document.getElementById('prep-pickups').textContent = todays.filter(o => o.deliveryType === 'Pickup').length;
+  document.getElementById('prep-orders').textContent = todays.length;
+
+  const list = document.getElementById('prep-list');
+  if (sorted.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🍳</div><h3>Nothing to prep yet</h3><p>Once you add orders for today, dishes will be grouped here by total quantity needed.</p></div>`;
+    return;
+  }
+  list.innerHTML = sorted.map(([dish, qty]) => `
+    <div class="prep-row"><span class="dish">${escapeHtml(dish)}</span><span class="prep-qty">x ${qty}</span></div>
+  `).join('');
+}
+document.getElementById('print-prep-btn').addEventListener('click', () => window.print());
+
+/* ============================= ALL ORDERS ================================= */
+function renderAllOrders(){
+  const q = normalizePhone(document.getElementById('orders-search').value) || document.getElementById('orders-search').value.trim().toLowerCase();
+  const statusF = document.getElementById('filter-status').value;
+  const payF = document.getElementById('filter-payment').value;
+  const fromF = document.getElementById('filter-from').value;
+  const toF = document.getElementById('filter-to').value;
+
+  let filtered = [...ORDERS];
+  if (q){
+    filtered = filtered.filter(o =>
+      o.customerName.toLowerCase().includes(q.toLowerCase()) || normalizePhone(o.customerPhone).includes(normalizePhone(q))
+    );
+  }
+  if (statusF) filtered = filtered.filter(o => o.status === statusF);
+  if (payF) filtered = filtered.filter(o => o.paymentStatus === payF);
+  if (fromF) filtered = filtered.filter(o => o.deliveryDate >= fromF);
+  if (toF) filtered = filtered.filter(o => o.deliveryDate <= toF);
+
+  filtered.sort((a,b) => b.createdAt - a.createdAt);
+
+  const list = document.getElementById('all-orders-list');
+  if (filtered.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><h3>No orders found</h3><p>Try adjusting your search or filters.</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(orderCardHtml).join('');
+  list.querySelectorAll('.order-card').forEach(el => el.addEventListener('click', () => openOrderDetail(el.dataset.id)));
+}
+['orders-search','filter-status','filter-payment','filter-from','filter-to'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAllOrders);
+  document.getElementById(id).addEventListener('change', renderAllOrders);
+});
+
+/* ============================= ORDER DETAIL ================================ */
+const STATUS_FLOW = ['New','Confirmed','Preparing','Ready','Delivered'];
+
+function openOrderDetail(id){
+  currentDetailOrderId = id;
+  renderDetail();
+  navigate('detail');
+}
+document.getElementById('detail-back-btn').addEventListener('click', () => navigate('orders'));
+
+function renderDetail(){
+  const o = ORDERS.find(x => x.id === currentDetailOrderId);
+  if (!o) return;
+  const itemsHtml = o.items.map(i => `
+    <div class="detail-row"><span class="k">${escapeHtml(i.dishName)} x${i.qty}</span><span class="v">${money(i.lineTotal)}</span></div>
+  `).join('');
+
+  const nextStatusIdx = STATUS_FLOW.indexOf(o.status);
+  const nextStatus = nextStatusIdx >= 0 && nextStatusIdx < STATUS_FLOW.length - 1 ? STATUS_FLOW[nextStatusIdx+1] : null;
+
+  const html = `
+    <div class="detail-card">
+      <div class="detail-row"><span class="k">Customer</span><span class="v">${escapeHtml(o.customerName)}</span></div>
+      <div class="detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(o.customerPhone||'—')}</span></div>
+      <div class="detail-row"><span class="k">Delivery</span><span class="v">${o.deliveryType === 'Delivery' ? '🚗 Delivery' : '🏠 Pickup'}</span></div>
+      ${o.deliveryType === 'Delivery' ? `<div class="detail-row"><span class="k">Area/Address</span><span class="v">${escapeHtml(o.deliveryAddress||'—')}</span></div>` : ''}
+      <div class="detail-row"><span class="k">Date &amp; Time</span><span class="v">${fmtDateNice(o.deliveryDate)}, ${fmtTimeNice(o.deliveryTime)}</span></div>
+      <div class="detail-row"><span class="k">Payment</span><span class="v">${o.paymentMethod} · <span class="badge ${o.paymentStatus==='Paid'?'badge-paid':'badge-unpaid'}">${o.paymentStatus}</span></span></div>
+      ${o.notes ? `<div class="detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
+    </div>
+
+    <div class="section-title">Items</div>
+    <div class="detail-card">
+      ${itemsHtml}
+      <div class="detail-row"><span class="k"><b>Grand Total</b></span><span class="v" style="font-size:16px;">${money(o.grandTotal)}</span></div>
+    </div>
+
+    <div class="section-title">Status: <span class="badge badge-${o.status}">${o.status}</span></div>
+    <div class="detail-card">
+      <div class="status-steps">
+        ${nextStatus ? `<button class="status-step-btn" id="btn-next-status" style="background:var(--accent);color:#fff;">Move to ${nextStatus}</button>` : ''}
+        ${o.status !== 'Cancelled' && o.status !== 'Delivered' ? `<button class="status-step-btn" id="btn-cancel-order" style="background:var(--danger-light);color:var(--danger);">Cancel Order</button>` : ''}
+      </div>
+    </div>
+
+    ${o.paymentStatus === 'Unpaid' ? `<button class="btn-secondary" id="btn-mark-paid" style="background:var(--success-light);color:var(--success);border:none;">✓ Mark as Paid</button>` : ''}
+    <button class="btn-whatsapp" id="btn-whatsapp-share">💬 Share on WhatsApp</button>
+    <button class="btn-secondary" id="btn-duplicate-order">📄 Duplicate Order</button>
+    <button class="btn-secondary" id="btn-edit-order">✏️ Edit Order</button>
+    <button class="btn-danger" id="btn-delete-order">🗑️ Delete Order</button>
+  `;
+  document.getElementById('detail-content').innerHTML = html;
+
+  const nextBtn = document.getElementById('btn-next-status');
+  if (nextBtn) nextBtn.addEventListener('click', () => updateOrderStatus(o.id, nextStatus));
+  const cancelBtn = document.getElementById('btn-cancel-order');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => confirmModal(
+    'Cancel this order?', 'The order will be marked as Cancelled. You can still see it in All Orders.',
+    () => updateOrderStatus(o.id, 'Cancelled'), 'Cancel Order', true
+  ));
+  const paidBtn = document.getElementById('btn-mark-paid');
+  if (paidBtn) paidBtn.addEventListener('click', () => markPaid(o.id));
+
+  document.getElementById('btn-whatsapp-share').addEventListener('click', () => shareOnWhatsApp(o));
+  document.getElementById('btn-duplicate-order').addEventListener('click', () => duplicateOrder(o));
+  document.getElementById('btn-edit-order').addEventListener('click', () => openNewOrderForm(o, o.id));
+  document.getElementById('btn-delete-order').addEventListener('click', () => confirmModal(
+    'Delete this order?', 'This cannot be undone. The order will be permanently removed.',
+    () => deleteOrder(o.id), 'Delete', true
+  ));
+}
+
+async function updateOrderStatus(id, status){
+  const idx = ORDERS.findIndex(o => o.id === id);
+  if (idx === -1) return;
+  ORDERS[idx].status = status;
+  ORDERS[idx].updatedAt = Date.now();
+  await idbPut('orders', ORDERS[idx]);
+  showToast(`Status updated to ${status}.`);
+  renderDetail();
+}
+async function markPaid(id){
+  const idx = ORDERS.findIndex(o => o.id === id);
+  if (idx === -1) return;
+  ORDERS[idx].paymentStatus = 'Paid';
+  ORDERS[idx].updatedAt = Date.now();
+  await idbPut('orders', ORDERS[idx]);
+  showToast('Marked as paid.');
+  renderDetail();
+}
+async function deleteOrder(id){
+  await idbDelete('orders', id);
+  ORDERS = ORDERS.filter(o => o.id !== id);
+  showToast('Order deleted.');
+  navigate('orders');
+}
+function duplicateOrder(o){
+  const copy = {
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    deliveryDate: todayISO(),
+    deliveryTime: o.deliveryTime,
+    deliveryType: o.deliveryType,
+    deliveryAddress: o.deliveryAddress,
+    items: o.items.map(i => ({...i})),
+    paymentStatus: 'Unpaid',
+    paymentMethod: o.paymentMethod,
+    notes: o.notes
+  };
+  showToast('Duplicated — just check the date/time and save.');
+  openNewOrderForm(copy, null);
+}
+function shareOnWhatsApp(o){
+  const itemsList = o.items.map(i => `${i.dishName} x${i.qty}`).join(', ');
+  const bizName = SETTINGS.businessName ? ` from ${SETTINGS.businessName}` : '';
+  const msg = `Hello ${o.customerName}! ✅ Your order${bizName} is confirmed. Here's your summary: ${itemsList}. Total: ${money(o.grandTotal)}. Delivery: ${fmtDateNice(o.deliveryDate)} at ${fmtTimeNice(o.deliveryTime)}${o.deliveryType === 'Delivery' ? ' to ' + o.deliveryAddress : ' (Pickup)'}. Thank you for ordering! 🍽️`;
+  const phoneDigits = normalizePhone(o.customerPhone);
+  const waPhone = phoneDigits.startsWith('971') ? phoneDigits : (phoneDigits.startsWith('0') ? '971' + phoneDigits.slice(1) : phoneDigits);
+  const url = `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+/* ============================= CUSTOMERS (derived) ========================= */
+function getCustomerAggregates(){
+  const map = new Map();
+  ORDERS.forEach(o => {
+    const key = normalizePhone(o.customerPhone) || ('name:' + o.customerName.toLowerCase());
+    if (!map.has(key)) map.set(key, { key, phone:o.customerPhone, name:o.customerName, orders:[], totalSpent:0, lastDate:'' });
+    const c = map.get(key);
+    c.orders.push(o);
+    if (o.status !== 'Cancelled') c.totalSpent += o.grandTotal;
+    if (o.createdAt > (c._lastCreated||0)){ c._lastCreated = o.createdAt; c.name = o.customerName; c.lastDate = o.deliveryDate; }
+  });
+  return [...map.values()].sort((a,b) => b.totalSpent - a.totalSpent);
+}
+function renderCustomers(){
+  const q = document.getElementById('customers-search').value.trim().toLowerCase();
+  let custs = getCustomerAggregates();
+  if (q) custs = custs.filter(c => c.name.toLowerCase().includes(q) || normalizePhone(c.phone).includes(normalizePhone(q)));
+  const list = document.getElementById('customers-list');
+  if (custs.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🧑‍🤝‍🧑</div><h3>No customers yet</h3><p>Customers appear here automatically once you add orders.</p></div>`;
+    return;
+  }
+  list.innerHTML = custs.map(c => `
+    <div class="cust-card" data-key="${escapeHtml(c.key)}">
+      <div>
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="sub">${c.orders.length} order${c.orders.length!==1?'s':''} · last ${fmtDateNice(c.lastDate)}</div>
+      </div>
+      <div class="spend">${money(c.totalSpent)}</div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.cust-card').forEach(el => el.addEventListener('click', () => openCustomerHistory(el.dataset.key)));
+}
+document.getElementById('customers-search').addEventListener('input', renderCustomers);
+
+// Looks up by unique customer key (normalised phone, or "name:<name>" when no phone) so
+// customers without a phone number never get mixed up with each other.
+function openCustomerHistory(custKey){
+  currentCustomerPhone = custKey;
+  const custs = getCustomerAggregates();
+  const c = custs.find(x => x.key === custKey);
+  if (!c) return;
+  document.getElementById('cust-history-name').textContent = c.name;
+  const ordersSorted = [...c.orders].sort((a,b) => b.createdAt - a.createdAt);
+  document.getElementById('cust-history-content').innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-card"><div class="label">Total Orders</div><div class="value">${c.orders.length}</div></div>
+      <div class="summary-card"><div class="label">Total Spent</div><div class="value">${money(c.totalSpent)}</div></div>
+    </div>
+    <div class="section-title">Order History</div>
+    <div id="cust-history-orders"></div>
+  `;
+  const list = document.getElementById('cust-history-orders');
+  list.innerHTML = ordersSorted.map(orderCardHtml).join('');
+  list.querySelectorAll('.order-card').forEach(el => el.addEventListener('click', () => openOrderDetail(el.dataset.id)));
+  navigate('customer-history');
+}
+
+/* ============================= REPORTS ====================================== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    reportRange = btn.dataset.range;
+    renderReports();
+  });
+});
+function ordersInRange(range){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return ORDERS.filter(o => {
+    if (o.status === 'Cancelled') return false;
+    // Use delivery date everywhere so Reports "Today" matches the Home dashboard
+    const d = new Date(o.deliveryDate + 'T00:00:00');
+    if (range === 'today') return o.deliveryDate === todayISO();
+    if (range === 'week'){ const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate()-6); return d >= weekAgo && d <= today; }
+    if (range === 'month'){ const monthAgo = new Date(today); monthAgo.setDate(monthAgo.getDate()-29); return d >= monthAgo && d <= today; }
+    return true; // all time
+  });
+}
+function renderReports(){
+  const inRange = ordersInRange(reportRange);
+  const revenue = inRange.reduce((s,o) => s+o.grandTotal, 0);
+  const avg = inRange.length ? revenue / inRange.length : 0;
+  const unpaidOrders = ORDERS.filter(o => o.paymentStatus === 'Unpaid' && o.status !== 'Cancelled' && inRange.includes(o));
+
+  document.getElementById('rep-revenue').textContent = money(revenue);
+  document.getElementById('rep-orders').textContent = inRange.length;
+  document.getElementById('rep-avg').textContent = money(avg);
+  document.getElementById('rep-unpaid-total').textContent = money(unpaidOrders.reduce((s,o)=>s+o.grandTotal,0));
+
+  // Top dishes
+  const dishMap = new Map();
+  inRange.forEach(o => o.items.forEach(it => dishMap.set(it.dishName, (dishMap.get(it.dishName)||0) + Number(it.qty))));
+  const topDishes = [...dishMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('rep-top-dishes').innerHTML = topDishes.length ? topDishes.map(([d,q],i) => `
+    <div class="top-list-item"><span><span class="top-list-rank">${i+1}.</span>${escapeHtml(d)}</span><b>${q}</b></div>
+  `).join('') : `<p style="font-size:13px;color:var(--text-mute);">No data for this period.</p>`;
+
+  // Top customers
+  const custMap = new Map();
+  inRange.forEach(o => {
+    const key = normalizePhone(o.customerPhone) || o.customerName;
+    custMap.set(key, (custMap.get(key)||{name:o.customerName, total:0}));
+    custMap.get(key).total += o.grandTotal;
+  });
+  const topCust = [...custMap.values()].sort((a,b)=>b.total-a.total).slice(0,5);
+  document.getElementById('rep-top-customers').innerHTML = topCust.length ? topCust.map((c,i) => `
+    <div class="top-list-item"><span><span class="top-list-rank">${i+1}.</span>${escapeHtml(c.name)}</span><b>${money(c.total)}</b></div>
+  `).join('') : `<p style="font-size:13px;color:var(--text-mute);">No data for this period.</p>`;
+
+  // Unpaid list
+  document.getElementById('rep-unpaid-list').innerHTML = unpaidOrders.length ? unpaidOrders.map(o => `
+    <div class="top-list-item"><span>${escapeHtml(o.customerName)} · ${fmtDateNice(o.deliveryDate)}</span><b style="color:var(--danger);">${money(o.grandTotal)}</b></div>
+  `).join('') : `<p style="font-size:13px;color:var(--text-mute);">No unpaid orders 🎉</p>`;
+}
+
+/* ============================= SETTINGS ====================================== */
+function loadSettingsIntoForm(){
+  document.getElementById('set-business-name').value = SETTINGS.businessName || '';
+  document.getElementById('set-owner-phone').value = SETTINGS.ownerPhone || '';
+  document.getElementById('set-currency').value = SETTINGS.currency || 'AED';
+}
+document.getElementById('save-settings-btn').addEventListener('click', async () => {
+  SETTINGS.businessName = document.getElementById('set-business-name').value.trim();
+  SETTINGS.ownerPhone = document.getElementById('set-owner-phone').value.trim();
+  SETTINGS.currency = document.getElementById('set-currency').value;
+  await idbPut('settings', SETTINGS);
+  renderMenuPickers();
+  showToast('Settings saved.');
+});
+
+document.getElementById('load-sample-btn').addEventListener('click', () => {
+  confirmModal('Load sample data?', 'This adds 5 example orders so you can explore the app. Your real orders (if any) are kept.', loadSampleData, 'Load Sample Data');
+});
+async function loadSampleData(){
+  const today = todayISO();
+  const samples = [
+    { customerName:'Fatima Al Suwaidi', customerPhone:'0501234567', deliveryDate:today, deliveryTime:'13:00', deliveryType:'Delivery', deliveryAddress:'Al Barsha 1, near Mall of Emirates', items:[{dishName:'Chicken Biryani', qty:3, unitPrice:35}], notes:'Less spicy', status:'Preparing', paymentStatus:'Unpaid', paymentMethod:'Cash' },
+    { customerName:'Sara Khan', customerPhone:'0559876543', deliveryDate:today, deliveryTime:'18:30', deliveryType:'Pickup', deliveryAddress:'', items:[{dishName:'Chocolate Cake', qty:1, unitPrice:120},{dishName:'Chicken Biryani', qty:2, unitPrice:35}], notes:'', status:'New', paymentStatus:'Paid', paymentMethod:'Bank Transfer' },
+    { customerName:'Mohammed Rahman', customerPhone:'0521112233', deliveryDate:today, deliveryTime:'19:00', deliveryType:'Delivery', deliveryAddress:'Jumeirah Village Circle, Bldg 12', items:[{dishName:'Lamb Chops', qty:3, unitPrice:55}], notes:'No onions', status:'Ready', paymentStatus:'Unpaid', paymentMethod:'Cash' },
+    { customerName:'Aisha Noor', customerPhone:'0567778899', deliveryDate:today, deliveryTime:'12:00', deliveryType:'Delivery', deliveryAddress:'Deira, Al Rigga Street', items:[{dishName:'Chicken Biryani', qty:5, unitPrice:35},{dishName:'Chocolate Cake', qty:2, unitPrice:120}], notes:'', status:'Delivered', paymentStatus:'Paid', paymentMethod:'Card' },
+    { customerName:'Yousef Hamdan', customerPhone:'0533334455', deliveryDate:today, deliveryTime:'20:00', deliveryType:'Pickup', deliveryAddress:'', items:[{dishName:'Lamb Chops', qty:2, unitPrice:55},{dishName:'Chocolate Cake', qty:2, unitPrice:120}], notes:'Birthday order 🎂', status:'Confirmed', paymentStatus:'Unpaid', paymentMethod:'Cash' }
+  ];
+  const now = Date.now();
+  for (let i=0;i<samples.length;i++){
+    const s = samples[i];
+    const items = s.items.map(it => ({...it, lineTotal: it.qty*it.unitPrice}));
+    const order = { id: uid(), ...s, items, grandTotal: items.reduce((a,b)=>a+b.lineTotal,0), orderDate: today, createdAt: now - i*1000, updatedAt: now - i*1000 };
+    await idbPut('orders', order);
+    ORDERS.push(order);
+  }
+  await learnDishes(samples.flatMap(s => s.items));
+  showToast('Sample data loaded!');
+  navigate('home');
+}
+
+document.getElementById('export-data-btn').addEventListener('click', async () => {
+  const data = { exportedAt: new Date().toISOString(), orders: ORDERS, settings: SETTINGS };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = todayISO();
+  a.href = url; a.download = `food-order-tracker-backup-${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  SETTINGS.ordersSinceLastBackup = 0;
+  await idbPut('settings', SETTINGS);
+  showToast('Backup downloaded to your phone.');
+});
+
+document.getElementById('import-data-btn').addEventListener('click', () => {
+  confirmModal('Restore from backup?', 'This will REPLACE all current data on this phone with the contents of the backup file you choose. This cannot be undone.', () => {
+    document.getElementById('import-file-input').click();
+  }, 'Choose File', true);
+});
+document.getElementById('import-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.orders || !Array.isArray(data.orders)) throw new Error('bad format');
+    await idbClear('orders');
+    for (const o of data.orders) await idbPut('orders', o);
+    ORDERS = data.orders;
+    if (data.settings){
+      SETTINGS = { ...SETTINGS, ...data.settings, key:'app' };
+      loadSettingsIntoForm();
+      applyLicenseIdentity(); // a backup from another business never overrides this licence's name
+      await idbPut('settings', SETTINGS);
+    }
+    renderMenuPickers();
+    showToast('Data restored from backup.');
+    navigate('home');
+  } catch(err){
+    showToast('That file could not be read. Please choose a valid backup JSON file.');
+  }
+  e.target.value = '';
+});
+
+document.getElementById('clear-data-btn').addEventListener('click', () => {
+  confirmModal('Clear ALL data?', 'This will permanently delete every order on this phone. This cannot be undone. Consider backing up first.', async () => {
+    await idbClear('orders');
+    ORDERS = [];
+    showToast('All order data cleared.');
+    navigate('home');
+  }, 'Delete Everything', true);
+});
+
+/* ============================= CONFIRM MODAL ================================= */
+function confirmModal(title, desc, onConfirm, confirmLabel='Confirm', danger=false){
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box">
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(desc)}</p>
+        <div class="modal-actions">
+          <button class="modal-cancel" id="modal-cancel-btn">Cancel</button>
+          <button class="${danger?'modal-confirm-danger':'modal-confirm'}" id="modal-confirm-btn">${escapeHtml(confirmLabel)}</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('modal-cancel-btn').addEventListener('click', () => root.innerHTML='');
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id==='modal-overlay') root.innerHTML=''; });
+  document.getElementById('modal-confirm-btn').addEventListener('click', () => { root.innerHTML=''; onConfirm(); });
+}
+
+/* ============================= LICENSE ACTIVATION ============================= */
+document.getElementById('activate-btn').addEventListener('click', activateLicense);
+document.getElementById('license-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') activateLicense(); });
+async function activateLicense(){
+  const val = document.getElementById('license-input').value;
+  const errEl = document.getElementById('license-error');
+  const btn = document.getElementById('activate-btn');
+  btn.disabled = true;
+  const lic = await verifyLicenseCode(val);
+  btn.disabled = false;
+  if (lic){
+    errEl.style.display='none';
+    await idbPut('settings', { key:'license', activated:true, code: lic.code, activatedAt: Date.now() });
+    if (!lic.b){ showOwnerSetup(); return; }   // batch code: ask the business name once
+    await finishActivation(lic);
+  } else {
+    errEl.style.display='block';
+  }
+}
+async function finishActivation(lic){
+  LICENSE = lic;
+  document.getElementById('license-screen').classList.add('hidden');
+  await startApp();
+  showToast(`Activated for ${lic.b}. Welcome!`, 3500);
+}
+function showOwnerSetup(){
+  document.getElementById('license-screen').classList.remove('hidden');
+  document.getElementById('license-box').classList.add('hidden');
+  document.getElementById('owner-box').classList.remove('hidden');
+}
+document.getElementById('owner-save-btn').addEventListener('click', async () => {
+  const b = document.getElementById('owner-name').value.trim();
+  const p = normalizePhone(document.getElementById('owner-phone').value);
+  const err = document.getElementById('owner-error');
+  if (b.length < 2 || p.length < 9){ err.style.display = 'block'; return; }
+  const rec = await idbGet('settings', 'license');
+  const lic = rec && rec.code ? await verifyLicenseCode(rec.code) : null;
+  if (!lic){ location.reload(); return; }
+  await idbPut('settings', { ...rec, owner: { b, p } });
+  await finishActivation({ ...lic, b, p });
+});
+// The business name + phone come from the licence and cannot be changed in Settings.
+// A shared code therefore shows the original buyer's business on every screen and WhatsApp message.
+function applyLicenseIdentity(){
+  if (!LICENSE) return;
+  SETTINGS.businessName = LICENSE.b;
+  SETTINGS.ownerPhone = LICENSE.p || '';
+  const n = document.getElementById('set-business-name');
+  const ph = document.getElementById('set-owner-phone');
+  n.value = SETTINGS.businessName; n.readOnly = true;
+  ph.value = SETTINGS.ownerPhone; ph.readOnly = true;
+  document.getElementById('license-info').textContent =
+    `Licensed to ${LICENSE.b}${LICENSE.p ? ' · ' + LICENSE.p : ''} · Licence ID ${LICENSE.id}`;
+}
+if (SALES_WHATSAPP){
+  const buy = document.getElementById('buy-license-btn');
+  buy.href = `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent('Hi! I would like to buy the Food Order Tracker app.')}`;
+  buy.classList.remove('hidden');
+}
+
+/* ============================= PWA: INSTALL + OFFLINE + SW ===================== */
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (!isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
+    document.getElementById('install-banner').classList.remove('hidden');
+  }
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById('install-banner').classList.add('hidden');
+  } else if (isIOS()){
+    showToast('Tap the Share icon, then "Add to Home Screen".', 4500);
+  }
+});
+document.getElementById('install-dismiss').addEventListener('click', () => {
+  document.getElementById('install-banner').classList.add('hidden');
+  localStorage.setItem('installBannerDismissed', '1');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.add('hidden');
+});
+
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+/* ============================= INIT ============================================ */
+async function startApp(){
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('bottom-nav').classList.remove('hidden');
+  renderHeaderDate();
+  updateOfflineIndicator();
+
+  const savedSettings = await idbGet('settings', 'app');
+  if (savedSettings) SETTINGS = { ...SETTINGS, ...savedSettings };
+  loadSettingsIntoForm();
+  applyLicenseIdentity();
+  await idbPut('settings', SETTINGS);
+
+  ORDERS = await idbGetAll('orders');
+  // Existing users: build the saved menu once from past orders
+  if (getMenu().length === 0 && ORDERS.length) await learnDishes(ORDERS.flatMap(o => o.items || []));
+  renderMenuPickers();
+
+  // Ask the browser to keep this app's data even when storage runs low (not auto-cleared)
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
+
+  if (isIOS() && !isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
+    document.getElementById('install-banner-text').textContent = 'Install: tap Share, then "Add to Home Screen"';
+    document.getElementById('install-btn').textContent = 'How?';
+    document.getElementById('install-banner').classList.remove('hidden');
+  }
+
+  navigate('home');
+}
+
+(async function init(){
+  // Activation link: .../#activate=<code> fills the box and activates in one tap
+  const m = location.hash.match(/activate=([^&]+)/);
+  if (m){
+    history.replaceState(null, '', location.pathname + location.search);
+    document.getElementById('license-input').value = decodeURIComponent(m[1]);
+  }
+  // Re-check the stored code's signature on every start (old preset keys are no longer accepted)
+  const license = await idbGet('settings', 'license');
+  let lic = license && license.code ? await verifyLicenseCode(license.code) : null;
+  if (lic && !lic.b && license.owner) lic = { ...lic, b: license.owner.b, p: license.owner.p };
+  if (lic && !lic.b){
+    showOwnerSetup();            // code accepted earlier but business name not entered yet
+  } else if (lic){
+    LICENSE = lic;
+    document.getElementById('license-screen').classList.add('hidden');
+    startApp();
+  } else {
+    document.getElementById('license-screen').classList.remove('hidden');
+    if (m) activateLicense();
+  }
+})();
+</script>
+</body>
+</html>
+
