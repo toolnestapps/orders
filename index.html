@@ -607,6 +607,8 @@ const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
 const SALES_WHATSAPP = '';
+// Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
+const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
 
 function b64urlToBytes(s){
   s = s.replace(/-/g,'+').replace(/_/g,'/');
@@ -775,7 +777,7 @@ function updateOfflineIndicator(){
   document.getElementById('offline-dot').classList.toggle('offline', !online);
   document.getElementById('offline-text').textContent = online ? 'Online' : 'Working Offline';
 }
-window.addEventListener('online', updateOfflineIndicator);
+window.addEventListener('online', () => { updateOfflineIndicator(); backgroundRecheck(); });
 window.addEventListener('offline', updateOfflineIndicator);
 
 /* ============================= HOME DASHBOARD ============================ */
@@ -1560,13 +1562,21 @@ async function activateLicense(){
   const btn = document.getElementById('activate-btn');
   btn.disabled = true;
   const lic = await verifyLicenseCode(val);
+  // Online check: one code = limited number of phones (your Google Sheet decides)
+  const srv = lic ? await serverCheck(lic) : null;
   btn.disabled = false;
+  if (lic && srv !== 'ok'){
+    errEl.textContent = SERVER_MESSAGES[srv] || SERVER_MESSAGES.error;
+    errEl.style.display = 'block';
+    return;
+  }
   if (lic){
     errEl.style.display='none';
-    await idbPut('settings', { key:'license', activated:true, code: lic.code, activatedAt: Date.now() });
+    await idbPut('settings', { key:'license', activated:true, code: lic.code, activatedAt: Date.now(), lastCheck: Date.now() });
     if (!lic.b){ showOwnerSetup(); return; }   // batch code: ask the business name once
     await finishActivation(lic);
   } else {
+    errEl.textContent = INVALID_CODE_MSG;
     errEl.style.display='block';
   }
 }
@@ -1590,8 +1600,68 @@ document.getElementById('owner-save-btn').addEventListener('click', async () => 
   const lic = rec && rec.code ? await verifyLicenseCode(rec.code) : null;
   if (!lic){ location.reload(); return; }
   await idbPut('settings', { ...rec, owner: { b, p } });
+  serverCheck({ ...lic, b, p });   // records the business name in your Google Sheet
   await finishActivation({ ...lic, b, p });
 });
+
+/* ===================== ONLINE LICENCE CHECK (Google Sheet) =====================
+   Needs internet only when activating. Afterwards the app re-checks quietly every
+   few days when online; if you set the code to "blocked" in the Sheet, it locks.
+   No internet / Google unreachable later = app keeps working (never blocks offline use). */
+const INVALID_CODE_MSG = "That code isn't valid. Copy the whole code from your WhatsApp message and try again.";
+const SERVER_MESSAGES = {
+  limit:   'This code is already being used on another phone. Please contact the person you bought it from.',
+  blocked: 'This code has been blocked. Please contact the person you bought it from.',
+  offline: 'Please connect to the internet to activate. This is needed only once.',
+  error:   "Couldn't check your code right now. Please check your internet and try again."
+};
+const RECHECK_EVERY_MS = 3 * 24 * 60 * 60 * 1000;
+async function getDeviceId(){
+  const rec = await idbGet('settings', 'device');
+  if (rec && rec.id) return rec.id;
+  const id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  await idbPut('settings', { key:'device', id });
+  return id;
+}
+// Returns 'ok' | 'limit' | 'blocked' | 'offline' | 'error'
+async function serverCheck(lic){
+  if (!LICENSE_SERVER) return 'ok';
+  if (!navigator.onLine) return 'offline';
+  try {
+    const device = await getDeviceId();
+    const u = LICENSE_SERVER + '?id=' + encodeURIComponent(lic.id) + '&device=' + encodeURIComponent(device)
+      + '&b=' + encodeURIComponent(lic.b || '') + '&p=' + encodeURIComponent(lic.p || '');
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 15000);
+    const r = await fetch(u, { signal: ctl.signal, redirect: 'follow', cache: 'no-store' });
+    clearTimeout(t);
+    const j = await r.json();
+    if (j && j.ok) return 'ok';
+    return (j && (j.reason === 'blocked' || j.reason === 'limit')) ? j.reason : 'error';
+  } catch(e){ return 'error'; }
+}
+// Quiet re-check while the app is in use; only an explicit "blocked" locks the app.
+async function backgroundRecheck(){
+  try {
+    if (!LICENSE_SERVER || !LICENSE || !navigator.onLine) return;
+    const rec = await idbGet('settings', 'license');
+    if (!rec || (rec.lastCheck && Date.now() - rec.lastCheck < RECHECK_EVERY_MS)) return;
+    const res = await serverCheck(LICENSE);
+    if (res === 'ok' || res === 'limit') await idbPut('settings', { ...rec, lastCheck: Date.now() });
+    if (res === 'blocked'){
+      await idbDelete('settings', 'license');   // orders stay saved on the phone
+      LICENSE = null;
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('bottom-nav').classList.add('hidden');
+      document.getElementById('owner-box').classList.add('hidden');
+      document.getElementById('license-box').classList.remove('hidden');
+      const errEl = document.getElementById('license-error');
+      errEl.textContent = SERVER_MESSAGES.blocked;
+      errEl.style.display = 'block';
+      document.getElementById('license-screen').classList.remove('hidden');
+    }
+  } catch(e){}
+}
 // The business name + phone come from the licence and cannot be changed in Settings.
 // A shared code therefore shows the original buyer's business on every screen and WhatsApp message.
 function applyLicenseIdentity(){
@@ -1690,6 +1760,8 @@ async function startApp(){
 
   // Ask the browser to keep this app's data even when storage runs low (not auto-cleared)
   try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e) {}
+
+  backgroundRecheck();   // quiet licence check (no waiting, never blocks offline use)
 
   if (isIOS() && !isStandalone() && localStorage.getItem('installBannerDismissed') !== '1'){
     document.getElementById('install-banner-text').textContent = 'Install: tap Share, then "Add to Home Screen"';
