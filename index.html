@@ -148,6 +148,10 @@ main{padding:0 16px 24px;}
 .badge-Cancelled{background:var(--danger-light); color:var(--danger);}
 .badge-paid{background:var(--success-light); color:var(--success);}
 .badge-unpaid{background:var(--danger-light); color:var(--danger);}
+.badge-partial{background:#FFF1D6; color:#8A5200;}
+.order-no{font-size:11px; font-weight:800; color:var(--text-mute); margin-right:6px;}
+.money-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.gt-break{font-size:12px; opacity:.85; margin-top:4px; text-align:right;}
 
 .empty-state{background:var(--card); border-radius:var(--radius); padding:32px 20px; text-align:center; box-shadow:var(--shadow);}
 .empty-state .emoji{font-size:40px; margin-bottom:10px;}
@@ -240,8 +244,8 @@ textarea{resize:vertical; min-height:60px;}
 
 /* Reports */
 .tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--card); border-radius:12px; padding:4px; box-shadow:var(--shadow);}
-.tab-btn{flex:1; padding:9px; border:none; background:transparent; border-radius:9px; font-size:12px; font-weight:700; color:var(--text-mute); cursor:pointer;}
-.tab-btn.active{background:var(--accent); color:#fff;}
+.tab-btn,.prep-tab{flex:1; padding:9px; border:none; background:transparent; border-radius:9px; font-size:12px; font-weight:700; color:var(--text-mute); cursor:pointer;}
+.tab-btn.active,.prep-tab.active{background:var(--accent); color:#fff;}
 .top-list-item{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px;}
 .top-list-item:last-child{border-bottom:none;}
 .top-list-rank{color:var(--text-mute); font-weight:700; margin-right:8px;}
@@ -263,6 +267,10 @@ nav.bottom-nav button .icon{font-size:19px;}
 nav.bottom-nav button.active{color:var(--accent);}
 
 /* Toast */
+#undo-bar{position:fixed; bottom:92px; left:50%; transform:translateX(-50%); z-index:1001; background:var(--text); color:#fff; padding:10px 10px 10px 16px; border-radius:12px; font-size:13px; display:flex; align-items:center; gap:12px; box-shadow:0 6px 20px rgba(0,0,0,0.25); max-width:92%;}
+#undo-bar button{background:#fff; color:var(--text); border:none; border-radius:8px; padding:8px 14px; font-weight:800; font-size:13px;}
+.day-group{font-size:12px; font-weight:800; color:var(--text-mute); margin:12px 2px 6px; text-transform:uppercase; letter-spacing:.04em;}
+.step-back{background:none; border:none; color:var(--text-mute); font-weight:700; font-size:13px; padding:10px 4px 0; cursor:pointer;}
 #toast{
   position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); z-index:1000;
   background:var(--text); color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; max-width:88%;
@@ -307,6 +315,14 @@ nav.bottom-nav button.active{color:var(--accent);}
     <p style="margin:0 0 12px;font-size:12px;opacity:.9;">This can't be changed later, so please check the spelling.</p>
     <button class="btn-activate" id="owner-save-btn">Start using the app</button>
   </div>
+  <div class="license-box hidden" id="ios-box" style="text-align:left;">
+    <p style="margin:0 0 10px;font-size:15px;font-weight:800;text-align:center;">📱 iPhone: 3 quick steps</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.45;"><b>1.</b> Tap <b>Copy my code</b> below.</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.45;"><b>2.</b> Tap the <b>Share</b> button <span aria-hidden="true">(□↑)</span> at the bottom of Safari → <b>Add to Home Screen</b> → <b>Add</b>.</p>
+    <p style="margin:0 0 12px;font-size:14px;line-height:1.45;"><b>3.</b> Open <b>Orders</b> from your home screen and paste the code.</p>
+    <button class="btn-activate" id="ios-copy-btn">Copy my code</button>
+    <p style="margin:10px 0 0;font-size:12px;opacity:.9;text-align:center;">Important: activate inside the home-screen app, not here in Safari.</p>
+  </div>
   <div class="license-box" id="license-box">
     <label for="license-input">Paste your activation code</label>
     <input type="text" id="license-input" placeholder="Paste the code from WhatsApp" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -350,7 +366,14 @@ nav.bottom-nav button.active{color:var(--accent);}
       </div>
       <button class="btn-new-order" id="home-new-order-btn">➕ New Order</button>
       <div class="section-title">Today's Orders</div>
+      <div class="summary-card hidden" id="sample-notice" style="margin:0 0 14px;border:1.5px dashed var(--teal);">
+        <div style="font-weight:800;margin-bottom:4px;">👀 You're looking at sample orders</div>
+        <div style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Remove them before adding your real orders.</div>
+        <button class="btn-teal" id="remove-samples-btn" style="margin:0;">Remove sample orders</button>
+      </div>
       <div id="home-orders-list"></div>
+      <div class="section-title hidden" id="upcoming-title">Coming up</div>
+      <div id="home-upcoming"></div>
       <div class="summary-card hidden" id="backup-reminder" style="margin-top:14px;border:1.5px solid var(--accent);">
         <div style="font-weight:800;margin-bottom:4px;">💾 Back up your orders</div>
         <div style="font-size:13px;color:var(--text-mute);margin-bottom:10px;" id="backup-reminder-text"></div>
@@ -401,17 +424,30 @@ nav.bottom-nav button.active{color:var(--accent);}
         <div class="menu-chips" id="menu-chips"></div>
         <datalist id="menu-datalist"></datalist>
 
+        <div class="money-row">
+          <div class="field"><label for="f-fee">Delivery fee</label><input type="number" id="f-fee" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label for="f-discount">Discount</label><input type="number" id="f-discount" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+        </div>
         <div class="grand-total-box">
           <span class="label">Grand Total</span>
-          <span class="value" id="grand-total-display">AED 0.00</span>
+          <span style="display:flex;flex-direction:column;align-items:flex-end;">
+            <span class="value" id="grand-total-display">AED 0.00</span>
+            <span class="gt-break" id="grand-total-break"></span>
+          </span>
         </div>
 
         <div class="field">
           <label>Payment Status</label>
           <div class="toggle-group">
             <div class="toggle-btn active pay" data-pay="Unpaid" id="pay-unpaid">Unpaid</div>
+            <div class="toggle-btn" data-pay="Part" id="pay-part">Part paid</div>
             <div class="toggle-btn" data-pay="Paid" id="pay-paid">Paid</div>
           </div>
+        </div>
+        <div class="field hidden" id="part-field">
+          <label for="f-paid-amount">Amount received so far</label>
+          <input type="number" id="f-paid-amount" min="0" step="0.01" placeholder="e.g. 50" inputmode="decimal">
+          <div class="hint" id="part-hint"></div>
         </div>
         <div class="field">
           <label>Payment Method</label>
@@ -435,9 +471,14 @@ nav.bottom-nav button.active{color:var(--accent);}
     <section class="screen" id="screen-prep">
       <div class="screen-head">
         <button class="back-btn" data-nav="home">←</button>
-        <h2>Today's Prep Summary</h2>
+        <h2 id="prep-title">Prep: Today</h2>
       </div>
       <div style="padding-top:14px;">
+        <div class="tabs" style="align-items:center;">
+          <button class="prep-tab active" data-prep="0">Today</button>
+          <button class="prep-tab" data-prep="1">Tomorrow</button>
+          <input type="date" id="prep-date" aria-label="Pick a date" style="flex:1.3;border:none;background:transparent;font-size:12px;font-weight:700;color:var(--text-mute);min-width:0;">
+        </div>
         <div class="prep-stats">
           <div class="stat"><div class="n" id="prep-deliveries">0</div><div class="l">DELIVERIES</div></div>
           <div class="stat"><div class="n" id="prep-pickups">0</div><div class="l">PICKUPS</div></div>
@@ -456,7 +497,7 @@ nav.bottom-nav button.active{color:var(--accent);}
       </div>
       <div style="padding-top:14px;">
         <div class="search-bar">
-          <input type="text" id="orders-search" placeholder="Search name or phone...">
+          <input type="text" id="orders-search" placeholder="Search name, phone or order #">
         </div>
         <div class="filter-row">
           <select id="filter-status">
@@ -466,7 +507,7 @@ nav.bottom-nav button.active{color:var(--accent);}
           </select>
           <select id="filter-payment">
             <option value="">All Payments</option>
-            <option>Paid</option><option>Unpaid</option>
+            <option value="Paid">Fully paid</option><option value="Owed">Money owed</option><option value="Partly paid">Part paid</option>
           </select>
         </div>
         <div class="filter-row">
@@ -601,6 +642,7 @@ nav.bottom-nav button.active{color:var(--accent);}
 </nav>
 
 <div id="toast"></div>
+<div id="undo-bar" class="hidden"><span id="undo-text"></span><button id="undo-btn">Undo</button></div>
 <div id="modal-root"></div>
 
 <script>
@@ -616,7 +658,7 @@ const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34b
 const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
-const APP_VERSION = 9;
+const APP_VERSION = 12;
 const SALES_WHATSAPP = '';
 // Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
 const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
@@ -754,8 +796,28 @@ function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* ============================= MONEY + ORDER NUMBERS ===================== */
+const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+function paidOf(o){ return o.amountPaid != null ? r2(o.amountPaid) : (o.paymentStatus === 'Paid' ? r2(o.grandTotal) : 0); }
+function balanceOf(o){ return Math.max(0, r2(r2(o.grandTotal) - paidOf(o))); }
+function payStatusOf(o){ const p = paidOf(o); return balanceOf(o) <= 0 ? 'Paid' : (p > 0 ? 'Partly paid' : 'Unpaid'); }
+function payBadge(o){ const st = payStatusOf(o); const cls = st === 'Paid' ? 'badge-paid' : st === 'Partly paid' ? 'badge-partial' : 'badge-unpaid'; return `<span class="badge ${cls}">${st === 'Partly paid' ? 'Part paid' : st}</span>`; }
+function itemsTotalOf(o){ return r2((o.items || []).reduce((s, i) => s + (Number(i.lineTotal) || 0), 0)); }
+function fmtNo(o){ return o.no ? '#' + String(o.no).padStart(4, '0') : ''; }
+// Gives every order a number (oldest first) and remembers the next number to use
+async function ensureOrderNumbers(){
+  let max = ORDERS.reduce((m, o) => Math.max(m, Number(o.no) || 0), 0);
+  const missing = ORDERS.filter(o => !o.no).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  for (const o of missing){ o.no = ++max; await idbPut('orders', o); }
+  if (!SETTINGS.nextOrderNo || SETTINGS.nextOrderNo <= max){ SETTINGS.nextOrderNo = max + 1; await idbPut('settings', SETTINGS); }
+}
+async function takeOrderNo(){
+  const n = SETTINGS.nextOrderNo || (ORDERS.reduce((m, o) => Math.max(m, Number(o.no) || 0), 0) + 1);
+  SETTINGS.nextOrderNo = n + 1; await idbPut('settings', SETTINGS); return n;
+}
+
 /* ============================= NAVIGATION ================================ */
-const SCREEN_TITLES = { home:'Home', neworder:'New Order', prep:"Today's Prep", orders:'All Orders', reports:'Reports', settings:'Settings', customers:'Customers', detail:'Order Detail', 'customer-history':'Customer' };
+const SCREEN_TITLES = { home:'Home', neworder:'New Order', prep:"Prep List", orders:'All Orders', reports:'Reports', settings:'Settings', customers:'Customers', detail:'Order Detail', 'customer-history':'Customer' };
 
 function navigate(name){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -766,7 +828,7 @@ function navigate(name){
   document.getElementById('header-title').textContent = SCREEN_TITLES[name] || 'Food Order Tracker';
 
   if (name === 'home') renderHome();
-  if (name === 'prep') renderPrep();
+  if (name === 'prep'){ PREP_DATE = null; document.getElementById('prep-date').value = ''; renderPrep(); }
   if (name === 'orders') renderAllOrders();
   if (name === 'customers') renderCustomers();
   if (name === 'reports') renderReports();
@@ -794,11 +856,12 @@ window.addEventListener('offline', updateOfflineIndicator);
 /* ============================= HOME DASHBOARD ============================ */
 function renderHome(){
   renderBackupStatus();
+  renderUpcoming();
+  document.getElementById('sample-notice').classList.toggle('hidden', !ORDERS.some(o => o.sample));
   const today = todayISO();
   const todays = ORDERS.filter(o => o.deliveryDate === today && o.status !== 'Cancelled');
   const revenue = todays.reduce((s,o) => s + o.grandTotal, 0);
-  const unpaidTotal = ORDERS.filter(o => o.paymentStatus === 'Unpaid' && o.status !== 'Cancelled')
-                            .reduce((s,o) => s + o.grandTotal, 0);
+  const unpaidTotal = ORDERS.filter(o => o.status !== 'Cancelled').reduce((s,o) => s + balanceOf(o), 0);
   const pending = todays.filter(o => ['New','Confirmed','Preparing','Ready'].includes(o.status)).length;
 
   document.getElementById('stat-today-count').textContent = todays.length;
@@ -836,7 +899,7 @@ function orderCardHtml(o){
     <div class="order-card" data-id="${o.id}">
       <div class="row1">
         <div>
-          <div class="cust">${escapeHtml(o.customerName)}</div>
+          <div class="cust"><span class="order-no">${fmtNo(o)}</span>${escapeHtml(o.customerName)}</div>
           <div class="items-summary">${escapeHtml(itemsSummaryText(o.items))}</div>
         </div>
         <div style="font-weight:800;">${money(o.grandTotal)}</div>
@@ -845,7 +908,7 @@ function orderCardHtml(o){
         <div class="time">${o.deliveryType === 'Delivery' ? '🚗' : '🏠'} ${fmtTimeNice(o.deliveryTime)}</div>
         <div class="badges">
           <span class="badge badge-${o.status}">${o.status}</span>
-          <span class="badge ${o.paymentStatus === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${o.paymentStatus}</span>
+          ${payBadge(o)}
         </div>
       </div>
     </div>`;
@@ -910,8 +973,16 @@ function recalcGrandTotal(){
     const price = parseFloat(row.querySelector('.row-price').value) || 0;
     total += qty * price;
   });
-  document.getElementById('grand-total-display').textContent = money(total);
+  const fee = r2(document.getElementById('f-fee').value), disc = r2(document.getElementById('f-discount').value);
+  const grand = Math.max(0, r2(total + fee - disc));
+  document.getElementById('grand-total-display').textContent = money(grand);
+  document.getElementById('grand-total-break').textContent = (fee || disc)
+    ? `Food ${money(total)}${fee ? ' + delivery ' + money(fee) : ''}${disc ? ' − discount ' + money(disc) : ''}` : '';
+  const paid = r2(document.getElementById('f-paid-amount').value);
+  document.getElementById('part-hint').textContent = paid ? `Balance to collect: ${money(Math.max(0, grand - paid))}` : '';
+  return grand;
 }
+['f-fee','f-discount','f-paid-amount'].forEach(id => document.getElementById(id).addEventListener('input', recalcGrandTotal));
 document.getElementById('add-item-btn').addEventListener('click', () => addItemRow());
 
 /* ============================= SAVED MENU ================================= */
@@ -1023,13 +1094,20 @@ function setDeliveryType(type){
 }
 // Payment toggle
 document.getElementById('pay-unpaid').addEventListener('click', () => setPayStatus('Unpaid'));
+document.getElementById('pay-part').addEventListener('click', () => { setPayStatus('Part'); document.getElementById('f-paid-amount').focus(); });
 document.getElementById('pay-paid').addEventListener('click', () => setPayStatus('Paid'));
 function setPayStatus(status){
   document.getElementById('pay-unpaid').classList.toggle('active', status === 'Unpaid');
+  document.getElementById('pay-part').classList.toggle('active', status === 'Part');
   document.getElementById('pay-paid').classList.toggle('active', status === 'Paid');
+  document.getElementById('part-field').classList.toggle('hidden', status !== 'Part');
 }
 function getSelectedDeliveryType(){ return document.getElementById('type-delivery').classList.contains('active') ? 'Delivery' : 'Pickup'; }
-function getSelectedPayStatus(){ return document.getElementById('pay-paid').classList.contains('active') ? 'Paid' : 'Unpaid'; }
+function getSelectedPayStatus(){
+  if (document.getElementById('pay-paid').classList.contains('active')) return 'Paid';
+  if (document.getElementById('pay-part').classList.contains('active')) return 'Part';
+  return 'Unpaid';
+}
 
 // Repeat-customer autocomplete
 const phoneInput = document.getElementById('f-phone');
@@ -1075,7 +1153,11 @@ function openNewOrderForm(prefill=null, editId=null){
     document.getElementById('f-time').value = prefill.deliveryTime || '';
     setDeliveryType(prefill.deliveryType || 'Delivery');
     document.getElementById('f-address').value = prefill.deliveryAddress || '';
-    setPayStatus(prefill.paymentStatus || 'Unpaid');
+    document.getElementById('f-fee').value = prefill.deliveryFee || '';
+    document.getElementById('f-discount').value = prefill.discount || '';
+    const pst = prefill.customerName && prefill.grandTotal != null ? payStatusOf(prefill) : 'Unpaid';
+    setPayStatus(pst === 'Paid' ? 'Paid' : pst === 'Partly paid' ? 'Part' : 'Unpaid');
+    document.getElementById('f-paid-amount').value = pst === 'Partly paid' ? paidOf(prefill) : '';
     document.getElementById('f-paymethod').value = prefill.paymentMethod || 'Cash';
     document.getElementById('f-notes').value = prefill.notes || '';
     (prefill.items && prefill.items.length ? prefill.items : [{}]).forEach(it => addItemRow(it.dishName||'', it.qty||1, it.unitPrice||''));
@@ -1086,6 +1168,7 @@ function openNewOrderForm(prefill=null, editId=null){
     setPayStatus('Unpaid');
     addItemRow();
   }
+  recalcGrandTotal();
   navigate('neworder');
 }
 
@@ -1104,7 +1187,14 @@ document.getElementById('order-form').addEventListener('submit', async (e) => {
   if (items.length === 0){ showToast('Add at least one dish with quantity and price.'); return; }
   if (deliveryType === 'Delivery' && !deliveryAddress){ showToast('Please add the delivery area/address.'); return; }
 
-  const grandTotal = items.reduce((s,i) => s + i.lineTotal, 0);
+  const deliveryFee = r2(document.getElementById('f-fee').value);
+  const discount = r2(document.getElementById('f-discount').value);
+  const grandTotal = Math.max(0, r2(items.reduce((s,i) => s + i.lineTotal, 0) + deliveryFee - discount));
+  const pay = getSelectedPayStatus();
+  const partAmt = r2(document.getElementById('f-paid-amount').value);
+  if (pay === 'Part' && (!partAmt || partAmt <= 0)){ showToast('Enter the amount received, or choose Unpaid.'); return; }
+  const amountPaid = pay === 'Paid' ? grandTotal : pay === 'Part' ? Math.min(partAmt, grandTotal) : 0;
+  const money_ = { deliveryFee, discount, grandTotal, amountPaid };
   const now = Date.now();
 
   if (currentEditOrderId){
@@ -1112,12 +1202,12 @@ document.getElementById('order-form').addEventListener('submit', async (e) => {
     const updated = {
       ...existing,
       customerName, customerPhone, deliveryDate, deliveryTime, deliveryType, deliveryAddress,
-      items, grandTotal,
-      paymentStatus: getSelectedPayStatus(),
+      items, ...money_,
       paymentMethod: document.getElementById('f-paymethod').value,
       notes: document.getElementById('f-notes').value.trim(),
       updatedAt: now
     };
+    updated.paymentStatus = payStatusOf(updated);
     await idbPut('orders', updated);
     const idx = ORDERS.findIndex(o => o.id === currentEditOrderId);
     ORDERS[idx] = updated;
@@ -1129,18 +1219,19 @@ document.getElementById('order-form').addEventListener('submit', async (e) => {
     const order = {
       id: uid(),
       customerName, customerPhone, deliveryDate, deliveryTime, deliveryType, deliveryAddress,
-      items, grandTotal,
+      items, ...money_,
       orderDate: todayISO(),
       status: 'New',
-      paymentStatus: getSelectedPayStatus(),
       paymentMethod: document.getElementById('f-paymethod').value,
       notes: document.getElementById('f-notes').value.trim(),
-      createdAt: now, updatedAt: now
+      createdAt: now, updatedAt: now,
+      no: await takeOrderNo()
     };
+    order.paymentStatus = payStatusOf(order);
     await idbPut('orders', order);
     ORDERS.push(order);
     await learnDishes(items);
-    showToast('Order saved!');
+    showToast(`Order ${fmtNo(order)} saved!`);
     await bumpBackupCounter();
     navigate('home');
   }
@@ -1156,10 +1247,37 @@ async function bumpBackupCounter(){
   }
 }
 
+/* ============================= UPCOMING (Home) ============================ */
+function addDaysISO(n){ const d = new Date(); d.setDate(d.getDate() + n); return localISO(d); }
+function dayLabel(iso){
+  if (iso === todayISO()) return 'Today';
+  if (iso === addDaysISO(1)) return 'Tomorrow';
+  return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' });
+}
+function renderUpcoming(){
+  const from = addDaysISO(1), to = addDaysISO(7);
+  const up = ORDERS.filter(o => o.deliveryDate >= from && o.deliveryDate <= to && o.status !== 'Cancelled')
+    .sort((a,b) => (a.deliveryDate + (a.deliveryTime||'')).localeCompare(b.deliveryDate + (b.deliveryTime||'')));
+  document.getElementById('upcoming-title').classList.toggle('hidden', up.length === 0);
+  document.getElementById('upcoming-title').textContent = `Coming up · next 7 days (${up.length})`;
+  const box = document.getElementById('home-upcoming');
+  let html = '', last = '';
+  up.forEach(o => { if (o.deliveryDate !== last){ last = o.deliveryDate; html += `<div class="day-group">${escapeHtml(dayLabel(o.deliveryDate))}</div>`; } html += orderCardHtml(o); });
+  box.innerHTML = html;
+  box.querySelectorAll('.order-card').forEach(el => el.addEventListener('click', () => openOrderDetail(el.dataset.id)));
+}
+
 /* ============================= PREP SUMMARY =============================== */
+let PREP_DATE = null;   // null = today
+document.querySelectorAll('.prep-tab').forEach(btn => btn.addEventListener('click', () => {
+  PREP_DATE = addDaysISO(Number(btn.dataset.prep)); document.getElementById('prep-date').value = ''; renderPrep();
+}));
+document.getElementById('prep-date').addEventListener('change', (e) => { PREP_DATE = e.target.value || null; renderPrep(); });
 function renderPrep(){
-  const today = todayISO();
+  const today = PREP_DATE || todayISO();
   const todays = ORDERS.filter(o => o.deliveryDate === today && o.status !== 'Cancelled');
+  document.getElementById('prep-title').textContent = 'Prep: ' + dayLabel(today);
+  document.querySelectorAll('.prep-tab').forEach(b => b.classList.toggle('active', !document.getElementById('prep-date').value && addDaysISO(Number(b.dataset.prep)) === today));
   const dishMap = new Map();
   todays.forEach(o => o.items.forEach(it => {
     dishMap.set(it.dishName, (dishMap.get(it.dishName) || 0) + Number(it.qty));
@@ -1172,7 +1290,7 @@ function renderPrep(){
 
   const list = document.getElementById('prep-list');
   if (sorted.length === 0){
-    list.innerHTML = `<div class="empty-state"><div class="emoji">🍳</div><h3>Nothing to prep yet</h3><p>Once you add orders for today, dishes will be grouped here by total quantity needed.</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="emoji">🍳</div><h3>Nothing to prep for ${escapeHtml(dayLabel(today).toLowerCase() === 'today' ? 'today' : dayLabel(today))}</h3><p>Orders for this day will be grouped here by total quantity of each dish.</p></div>`;
     return;
   }
   list.innerHTML = sorted.map(([dish, qty]) => `
@@ -1183,20 +1301,24 @@ document.getElementById('print-prep-btn').addEventListener('click', () => window
 
 /* ============================= ALL ORDERS ================================= */
 function renderAllOrders(){
-  const q = normalizePhone(document.getElementById('orders-search').value) || document.getElementById('orders-search').value.trim().toLowerCase();
+  const raw = document.getElementById('orders-search').value.trim().toLowerCase();
+  const qDigits = normalizePhone(raw);
   const statusF = document.getElementById('filter-status').value;
   const payF = document.getElementById('filter-payment').value;
   const fromF = document.getElementById('filter-from').value;
   const toF = document.getElementById('filter-to').value;
 
   let filtered = [...ORDERS];
-  if (q){
+  if (raw){
+    const noQ = /^#?\d{1,6}$/.test(raw) ? Number(raw.replace('#','')) : null;
     filtered = filtered.filter(o =>
-      o.customerName.toLowerCase().includes(q.toLowerCase()) || normalizePhone(o.customerPhone).includes(normalizePhone(q))
+      o.customerName.toLowerCase().includes(raw) ||
+      (qDigits.length >= 3 && normalizePhone(o.customerPhone).includes(qDigits)) ||
+      (noQ !== null && Number(o.no) === noQ)
     );
   }
   if (statusF) filtered = filtered.filter(o => o.status === statusF);
-  if (payF) filtered = filtered.filter(o => o.paymentStatus === payF);
+  if (payF) filtered = filtered.filter(o => payF === 'Owed' ? (balanceOf(o) > 0 && o.status !== 'Cancelled') : payStatusOf(o) === payF);
   if (fromF) filtered = filtered.filter(o => o.deliveryDate >= fromF);
   if (toF) filtered = filtered.filter(o => o.deliveryDate <= toF);
 
@@ -1234,22 +1356,29 @@ function renderDetail(){
 
   const nextStatusIdx = STATUS_FLOW.indexOf(o.status);
   const nextStatus = nextStatusIdx >= 0 && nextStatusIdx < STATUS_FLOW.length - 1 ? STATUS_FLOW[nextStatusIdx+1] : null;
+  const prevStatus = nextStatusIdx > 0 ? STATUS_FLOW[nextStatusIdx-1] : null;
 
   const html = `
     <div class="detail-card">
+      ${o.no ? `<div class="detail-row"><span class="k">Order no.</span><span class="v">${fmtNo(o)}</span></div>` : ''}
       <div class="detail-row"><span class="k">Customer</span><span class="v">${escapeHtml(o.customerName)}</span></div>
       <div class="detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(o.customerPhone||'—')}</span></div>
       <div class="detail-row"><span class="k">Delivery</span><span class="v">${o.deliveryType === 'Delivery' ? '🚗 Delivery' : '🏠 Pickup'}</span></div>
       ${o.deliveryType === 'Delivery' ? `<div class="detail-row"><span class="k">Area/Address</span><span class="v">${escapeHtml(o.deliveryAddress||'—')}</span></div>` : ''}
       <div class="detail-row"><span class="k">Date &amp; Time</span><span class="v">${fmtDateNice(o.deliveryDate)}, ${fmtTimeNice(o.deliveryTime)}</span></div>
-      <div class="detail-row"><span class="k">Payment</span><span class="v">${o.paymentMethod} · <span class="badge ${o.paymentStatus==='Paid'?'badge-paid':'badge-unpaid'}">${o.paymentStatus}</span></span></div>
+      <div class="detail-row"><span class="k">Payment</span><span class="v">${o.paymentMethod} · ${payBadge(o)}</span></div>
       ${o.notes ? `<div class="detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
     </div>
 
     <div class="section-title">Items</div>
     <div class="detail-card">
       ${itemsHtml}
+      ${(o.deliveryFee || o.discount) ? `<div class="detail-row"><span class="k">Food</span><span class="v">${money(itemsTotalOf(o))}</span></div>` : ''}
+      ${o.deliveryFee ? `<div class="detail-row"><span class="k">Delivery fee</span><span class="v">+ ${money(o.deliveryFee)}</span></div>` : ''}
+      ${o.discount ? `<div class="detail-row"><span class="k">Discount</span><span class="v">− ${money(o.discount)}</span></div>` : ''}
       <div class="detail-row"><span class="k"><b>Grand Total</b></span><span class="v" style="font-size:16px;">${money(o.grandTotal)}</span></div>
+      ${paidOf(o) > 0 && balanceOf(o) > 0 ? `<div class="detail-row"><span class="k">Paid so far</span><span class="v" style="color:var(--success);">${money(paidOf(o))}</span></div>
+      <div class="detail-row"><span class="k"><b>Balance to collect</b></span><span class="v" style="color:var(--danger);">${money(balanceOf(o))}</span></div>` : ''}
     </div>
 
     <div class="section-title">Status: <span class="badge badge-${o.status}">${o.status}</span></div>
@@ -1257,10 +1386,15 @@ function renderDetail(){
       <div class="status-steps">
         ${nextStatus ? `<button class="status-step-btn" id="btn-next-status" style="background:var(--accent);color:#fff;">Move to ${nextStatus}</button>` : ''}
         ${o.status !== 'Cancelled' && o.status !== 'Delivered' ? `<button class="status-step-btn" id="btn-cancel-order" style="background:var(--danger-light);color:var(--danger);">Cancel Order</button>` : ''}
+        ${o.status === 'Cancelled' ? `<button class="status-step-btn" id="btn-reopen" style="background:var(--accent);color:#fff;">↩ Reopen order</button>` : ''}
       </div>
+      ${prevStatus ? `<button class="step-back" id="btn-prev-status">↩ Back to ${prevStatus}</button>` : ''}
     </div>
 
-    ${o.paymentStatus === 'Unpaid' ? `<button class="btn-secondary" id="btn-mark-paid" style="background:var(--success-light);color:var(--success);border:none;">✓ Mark as Paid</button>` : ''}
+    ${balanceOf(o) > 0
+      ? `<button class="btn-secondary" id="btn-mark-paid" style="background:var(--success-light);color:var(--success);border:none;">✓ Mark fully paid</button>
+         <button class="btn-secondary" id="btn-part-pay">＋ Record a part payment</button>`
+      : `<button class="step-back" id="btn-mark-unpaid" style="display:block;margin:0 auto 4px;">↩ Mark as Unpaid</button>`}
     <button class="btn-whatsapp" id="btn-whatsapp-share">💬 Share on WhatsApp</button>
     <button class="btn-secondary" id="btn-duplicate-order">📄 Duplicate Order</button>
     <button class="btn-secondary" id="btn-edit-order">✏️ Edit Order</button>
@@ -1277,12 +1411,22 @@ function renderDetail(){
   ));
   const paidBtn = document.getElementById('btn-mark-paid');
   if (paidBtn) paidBtn.addEventListener('click', () => markPaid(o.id));
+  const partBtn = document.getElementById('btn-part-pay');
+  if (partBtn) partBtn.addEventListener('click', () => amountModal(
+    'Record a payment', `Balance to collect: ${money(balanceOf(o))}. How much did you receive?`, balanceOf(o),
+    (amt) => recordPayment(o.id, amt)));
+  const unpaidBtn = document.getElementById('btn-mark-unpaid');
+  if (unpaidBtn) unpaidBtn.addEventListener('click', () => markPaid(o.id, 'Unpaid'));
+  const prevBtn = document.getElementById('btn-prev-status');
+  if (prevBtn) prevBtn.addEventListener('click', () => updateOrderStatus(o.id, prevStatus));
+  const reopenBtn = document.getElementById('btn-reopen');
+  if (reopenBtn) reopenBtn.addEventListener('click', () => updateOrderStatus(o.id, 'New'));
 
   document.getElementById('btn-whatsapp-share').addEventListener('click', () => shareOnWhatsApp(o));
   document.getElementById('btn-duplicate-order').addEventListener('click', () => duplicateOrder(o));
   document.getElementById('btn-edit-order').addEventListener('click', () => openNewOrderForm(o, o.id));
   document.getElementById('btn-delete-order').addEventListener('click', () => confirmModal(
-    'Delete this order?', 'This cannot be undone. The order will be permanently removed.',
+    'Delete this order?', 'The order will be removed. You can tap Undo straight after if it was a mistake.',
     () => deleteOrder(o.id), 'Delete', true
   ));
 }
@@ -1296,20 +1440,61 @@ async function updateOrderStatus(id, status){
   showToast(`Status updated to ${status}.`);
   renderDetail();
 }
-async function markPaid(id){
+async function markPaid(id, status = 'Paid'){
   const idx = ORDERS.findIndex(o => o.id === id);
   if (idx === -1) return;
-  ORDERS[idx].paymentStatus = 'Paid';
+  ORDERS[idx].amountPaid = status === 'Paid' ? r2(ORDERS[idx].grandTotal) : 0;
+  ORDERS[idx].paymentStatus = payStatusOf(ORDERS[idx]);
   ORDERS[idx].updatedAt = Date.now();
   await idbPut('orders', ORDERS[idx]);
-  showToast('Marked as paid.');
+  showToast(status === 'Paid' ? 'Marked as paid.' : 'Marked as unpaid.');
   renderDetail();
 }
+async function recordPayment(id, amt){
+  const o = ORDERS.find(x => x.id === id); if (!o) return;
+  o.amountPaid = Math.min(r2(o.grandTotal), r2(paidOf(o) + r2(amt)));
+  o.paymentStatus = payStatusOf(o); o.updatedAt = Date.now();
+  await idbPut('orders', o);
+  showToast(balanceOf(o) > 0 ? `Payment saved. Balance: ${money(balanceOf(o))}` : 'Fully paid ✅');
+  renderDetail();
+}
+function amountModal(title, desc, suggested, onOk){
+  document.getElementById('toast').classList.remove('show');
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+      <h3>${escapeHtml(title)}</h3><p>${escapeHtml(desc)}</p>
+      <input type="number" id="amount-input" min="0" step="0.01" inputmode="decimal" placeholder="Amount" style="width:100%;padding:13px;border:1.5px solid var(--border);border-radius:12px;font-size:16px;margin-bottom:12px;">
+      <div class="modal-actions"><button class="modal-cancel" id="modal-cancel-btn">Cancel</button><button class="modal-confirm" id="modal-confirm-btn">Save</button></div>
+    </div></div>`;
+  const inp = document.getElementById('amount-input'); inp.focus();
+  const close = () => root.innerHTML = '';
+  document.getElementById('modal-cancel-btn').addEventListener('click', close);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id === 'modal-overlay') close(); });
+  const ok = () => { const v = r2(inp.value); if (!v || v <= 0){ inp.focus(); return; } close(); onOk(v); };
+  document.getElementById('modal-confirm-btn').addEventListener('click', ok);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
+}
 async function deleteOrder(id){
+  const removed = ORDERS.find(o => o.id === id);
   await idbDelete('orders', id);
   ORDERS = ORDERS.filter(o => o.id !== id);
-  showToast('Order deleted.');
   navigate('orders');
+  showUndo('Order deleted.', async () => {
+    await idbPut('orders', removed); ORDERS.push(removed);
+    showToast('Order restored.'); navigate('orders');
+  });
+}
+// A short "Undo" bar (6 seconds) for actions people regret
+function showUndo(text, onUndo){
+  const bar = document.getElementById('undo-bar');
+  document.getElementById('undo-text').textContent = text;
+  bar.classList.remove('hidden');
+  clearTimeout(showUndo._t);
+  const btn = document.getElementById('undo-btn');
+  const fresh = btn.cloneNode(true); btn.replaceWith(fresh);
+  fresh.addEventListener('click', () => { bar.classList.add('hidden'); clearTimeout(showUndo._t); onUndo(); });
+  showUndo._t = setTimeout(() => bar.classList.add('hidden'), 6000);
 }
 function duplicateOrder(o){
   const copy = {
@@ -1320,7 +1505,8 @@ function duplicateOrder(o){
     deliveryType: o.deliveryType,
     deliveryAddress: o.deliveryAddress,
     items: o.items.map(i => ({...i})),
-    paymentStatus: 'Unpaid',
+    paymentStatus: 'Unpaid', amountPaid: 0,
+    deliveryFee: o.deliveryFee || 0, discount: o.discount || 0,
     paymentMethod: o.paymentMethod,
     notes: o.notes
   };
@@ -1330,9 +1516,23 @@ function duplicateOrder(o){
 function shareOnWhatsApp(o){
   const itemsList = o.items.map(i => `${i.dishName} x${i.qty}`).join(', ');
   const bizName = SETTINGS.businessName ? ` from ${SETTINGS.businessName}` : '';
-  const msg = `Hello ${o.customerName}! ✅ Your order${bizName} is confirmed. Here's your summary: ${itemsList}. Total: ${money(o.grandTotal)}. Delivery: ${fmtDateNice(o.deliveryDate)} at ${fmtTimeNice(o.deliveryTime)}${o.deliveryType === 'Delivery' ? ' to ' + o.deliveryAddress : ' (Pickup)'}. Thank you for ordering! 🍽️`;
+  const lines = [
+    `Hello ${o.customerName}! ✅ Your order${o.no ? ' ' + fmtNo(o) : ''}${bizName} is confirmed.`,
+    '', `🍲 ${itemsList}`,
+    o.deliveryFee ? `🚗 Delivery fee: ${money(o.deliveryFee)}` : '',
+    o.discount ? `🏷️ Discount: −${money(o.discount)}` : '',
+    `💰 Total: ${money(o.grandTotal)}`,
+    paidOf(o) > 0 && balanceOf(o) > 0 ? `Paid: ${money(paidOf(o))} · Balance: ${money(balanceOf(o))}` : (balanceOf(o) <= 0 ? 'Paid ✅' : ''),
+    `📅 ${o.deliveryType === 'Delivery' ? 'Delivery' : 'Pickup'}: ${fmtDateNice(o.deliveryDate)}${o.deliveryTime ? ' at ' + fmtTimeNice(o.deliveryTime) : ''}${o.deliveryType === 'Delivery' && o.deliveryAddress ? ' to ' + o.deliveryAddress : ''}`,
+    '', 'Thank you for ordering! 🍽️'
+  ];
+  const msg = lines.filter((l, i) => l !== '' || lines[i - 1] !== '').join('\n');
   const phoneDigits = normalizePhone(o.customerPhone);
-  const waPhone = phoneDigits.startsWith('971') ? phoneDigits : (phoneDigits.startsWith('0') ? '971' + phoneDigits.slice(1) : phoneDigits);
+  const waPhone = phoneDigits.startsWith('971') ? phoneDigits
+    : phoneDigits.startsWith('00') ? phoneDigits.slice(2)
+    : phoneDigits.startsWith('0') ? '971' + phoneDigits.slice(1)
+    : (phoneDigits.length === 9 && phoneDigits.startsWith('5')) ? '971' + phoneDigits
+    : phoneDigits;
   const url = `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
 }
@@ -1420,12 +1620,12 @@ function renderReports(){
   const inRange = ordersInRange(reportRange);
   const revenue = inRange.reduce((s,o) => s+o.grandTotal, 0);
   const avg = inRange.length ? revenue / inRange.length : 0;
-  const unpaidOrders = ORDERS.filter(o => o.paymentStatus === 'Unpaid' && o.status !== 'Cancelled' && inRange.includes(o));
+  const unpaidOrders = ORDERS.filter(o => balanceOf(o) > 0 && o.status !== 'Cancelled' && inRange.includes(o));
 
   document.getElementById('rep-revenue').textContent = money(revenue);
   document.getElementById('rep-orders').textContent = inRange.length;
   document.getElementById('rep-avg').textContent = money(avg);
-  document.getElementById('rep-unpaid-total').textContent = money(unpaidOrders.reduce((s,o)=>s+o.grandTotal,0));
+  document.getElementById('rep-unpaid-total').textContent = money(unpaidOrders.reduce((s,o)=>s+balanceOf(o),0));
 
   // Top dishes
   const dishMap = new Map();
@@ -1449,7 +1649,7 @@ function renderReports(){
 
   // Unpaid list
   document.getElementById('rep-unpaid-list').innerHTML = unpaidOrders.length ? unpaidOrders.map(o => `
-    <div class="top-list-item"><span>${escapeHtml(o.customerName)} · ${fmtDateNice(o.deliveryDate)}</span><b style="color:var(--danger);">${money(o.grandTotal)}</b></div>
+    <div class="top-list-item"><span>${fmtNo(o)} ${escapeHtml(o.customerName)} · ${fmtDateNice(o.deliveryDate)}</span><b style="color:var(--danger);">${money(balanceOf(o))}</b></div>
   `).join('') : `<p style="font-size:13px;color:var(--text-mute);">No unpaid orders 🎉</p>`;
 }
 
@@ -1468,6 +1668,13 @@ document.getElementById('save-settings-btn').addEventListener('click', async () 
   showToast('Settings saved.');
 });
 
+document.getElementById('remove-samples-btn').addEventListener('click', async () => {
+  const samples = ORDERS.filter(o => o.sample);
+  for (const o of samples) await idbDelete('orders', o.id);
+  ORDERS = ORDERS.filter(o => !o.sample);
+  showToast(`Removed ${samples.length} sample orders. Your real orders are kept.`, 3500);
+  navigate('home');
+});
 document.getElementById('load-sample-btn').addEventListener('click', () => {
   confirmModal('Load sample data?', 'This adds 5 example orders so you can explore the app. Your real orders (if any) are kept.', loadSampleData, 'Load Sample Data');
 });
@@ -1484,10 +1691,11 @@ async function loadSampleData(){
   for (let i=0;i<samples.length;i++){
     const s = samples[i];
     const items = s.items.map(it => ({...it, lineTotal: it.qty*it.unitPrice}));
-    const order = { id: uid(), ...s, items, grandTotal: items.reduce((a,b)=>a+b.lineTotal,0), orderDate: today, createdAt: now - i*1000, updatedAt: now - i*1000 };
+    const order = { id: uid(), ...s, items, grandTotal: items.reduce((a,b)=>a+b.lineTotal,0), orderDate: today, createdAt: now - i*1000, updatedAt: now - i*1000, sample: true };
     await idbPut('orders', order);
     ORDERS.push(order);
   }
+  await ensureOrderNumbers();
   await learnDishes(samples.flatMap(s => s.items));
   showToast('Sample data loaded!');
   navigate('home');
@@ -1583,11 +1791,11 @@ document.getElementById('backup-reminder-btn').addEventListener('click', runBack
 
 // Orders as a spreadsheet (opens in Excel / Google Sheets) — for the business's own records
 document.getElementById('export-csv-btn').addEventListener('click', async () => {
-  const head = ['Order date','Delivery date','Time','Customer','Phone','Type','Area/Address','Items','Total','Payment','Paid?','Status','Notes'];
+  const head = ['Order no','Order date','Delivery date','Time','Customer','Phone','Type','Area/Address','Items','Food','Delivery fee','Discount','Total','Paid','Balance','Payment method','Payment status','Status','Notes'];
   const rows = [...ORDERS].sort((a,b) => (a.deliveryDate||'').localeCompare(b.deliveryDate||'')).map(o => [
-    o.orderDate, o.deliveryDate, o.deliveryTime, o.customerName, o.customerPhone, o.deliveryType, o.deliveryAddress,
-    (o.items||[]).map(i => `${i.dishName} x${i.qty}`).join('; '), (Number(o.grandTotal)||0).toFixed(2),
-    o.paymentMethod, o.paymentStatus, o.status, o.notes ]);
+    fmtNo(o), o.orderDate, o.deliveryDate, o.deliveryTime, o.customerName, o.customerPhone, o.deliveryType, o.deliveryAddress,
+    (o.items||[]).map(i => `${i.dishName} x${i.qty}`).join('; '), itemsTotalOf(o).toFixed(2), r2(o.deliveryFee).toFixed(2), r2(o.discount).toFixed(2),
+    r2(o.grandTotal).toFixed(2), paidOf(o).toFixed(2), balanceOf(o).toFixed(2), o.paymentMethod, payStatusOf(o), o.status, o.notes ]);
   const esc = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
   const csv = '﻿' + [head, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
   const mode = await chooseDestination('Export orders to Excel');
@@ -1610,7 +1818,7 @@ document.getElementById('import-file-input').addEventListener('change', async (e
 // Only the BACKUP file (.txt, or older .json) can restore. The Excel export is a report, not a backup.
 async function restoreFromText(text){
   try {
-    if (/^\ufeff?"?Order date/.test(text)) throw new Error('excel');
+    if (/^\ufeff?"?Order (no|date)"?,/.test(text)) throw new Error('excel');
     const data = JSON.parse(text);
     if (!data.orders || !Array.isArray(data.orders)) throw new Error('bad format');
     await idbClear('orders');
@@ -1622,6 +1830,7 @@ async function restoreFromText(text){
       applyLicenseIdentity(); // a backup from another business never overrides this licence's name
       await idbPut('settings', SETTINGS);
     }
+    await ensureOrderNumbers();
     renderMenuPickers();
     showToast(`Data restored from backup ✅ (${ORDERS.length} orders)`, 4000);
     navigate('home');
@@ -1715,6 +1924,9 @@ function showOwnerSetup(){
   document.getElementById('license-box').classList.add('hidden');
   document.getElementById('owner-box').classList.remove('hidden');
 }
+['owner-name','owner-phone'].forEach(id => document.getElementById(id).addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){ e.preventDefault(); document.getElementById('owner-save-btn').click(); }
+}));
 document.getElementById('owner-save-btn').addEventListener('click', async () => {
   const b = document.getElementById('owner-name').value.trim();
   const p = normalizePhone(document.getElementById('owner-phone').value);
@@ -1878,6 +2090,7 @@ async function startApp(){
   await idbPut('settings', SETTINGS);
 
   ORDERS = await idbGetAll('orders');
+  await ensureOrderNumbers();
   // Existing users: build the saved menu once from past orders
   if (getMenu().length === 0 && ORDERS.length) await learnDishes(ORDERS.flatMap(o => o.items || []));
   renderMenuPickers();
@@ -1908,6 +2121,23 @@ async function startApp(){
     document.getElementById('license-input').value = PENDING_CODE;
   }
   showSamsungHint();
+  // iPhone in Safari: Safari and the home-screen app keep separate data, so activating here
+  // would not unlock the home-screen app. Guide them to add it to the home screen first.
+  if (isIOS() && !isStandalone()){
+    const rec0 = await idbGet('settings', 'license');
+    if (!rec0){
+      document.getElementById('license-box').classList.add('hidden');
+      document.getElementById('ios-box').classList.remove('hidden');
+      document.getElementById('license-screen').classList.remove('hidden');
+      document.getElementById('ios-copy-btn').addEventListener('click', async () => {
+        const code = PENDING_CODE;
+        try { if (!code) throw 0; await navigator.clipboard.writeText(code); document.getElementById('ios-copy-btn').textContent = 'Copied ✅ Now do step 2'; }
+        catch(e){ document.getElementById('ios-copy-btn').textContent = 'Copy the code from your WhatsApp message'; }
+      });
+      if (!PENDING_CODE) document.getElementById('ios-copy-btn').textContent = 'Your code is in the WhatsApp message';
+      return;
+    }
+  }
   // Re-check the stored code's signature on every start (old preset keys are no longer accepted)
   const license = await idbGet('settings', 'license');
   let lic = license && license.code ? await verifyLicenseCode(license.code) : null;

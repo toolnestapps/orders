@@ -1,6 +1,6 @@
 // Food Order Tracker — Service Worker
 // IMPORTANT: bump CACHE_VERSION on every release so installed users get the update.
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = 'food-order-tracker-' + CACHE_VERSION;
 const APP_SHELL = [
   './',
