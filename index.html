@@ -75,6 +75,11 @@ h1,h2,h3,p{margin:0;}
   font-size:16px; font-weight:700; cursor:pointer;
 }
 .license-footer{margin-top:22px; font-size:12px; opacity:.85;}
+.btn-trial{width:100%; max-width:340px; padding:15px; border:2px solid #fff; border-radius:12px; background:transparent; color:#fff; font-size:16px; font-weight:800; cursor:pointer; margin-bottom:14px;}
+.license-or{font-size:12px; opacity:.85; margin:0 0 12px;}
+#trial-ended{max-width:340px; background:rgba(0,0,0,0.18); border-radius:14px; padding:14px; margin-bottom:14px; font-size:14px; line-height:1.45;}
+.link-btn{background:none; border:none; color:#fff; text-decoration:underline; font-size:13px; margin-top:12px; cursor:pointer;}
+.trial-card{border:1.5px solid var(--teal); margin:0 0 14px;}
 
 /* ===== Install banner ===== */
 #install-banner{
@@ -272,14 +277,14 @@ nav.bottom-nav button.active{color:var(--accent);}
 .day-group{font-size:12px; font-weight:800; color:var(--text-mute); margin:12px 2px 6px; text-transform:uppercase; letter-spacing:.04em;}
 .step-back{background:none; border:none; color:var(--text-mute); font-weight:700; font-size:13px; padding:10px 4px 0; cursor:pointer;}
 #toast{
-  position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); z-index:1000;
+  position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(20px); z-index:10002;
   background:var(--text); color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; max-width:88%;
   opacity:0; transition:all .25s; pointer-events:none; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,0.25);
 }
 #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
 /* Modal */
-.modal-overlay{position:fixed; inset:0; background:rgba(43,33,24,0.45); z-index:800; display:flex; align-items:flex-end; justify-content:center;}
+.modal-overlay{position:fixed; inset:0; background:rgba(43,33,24,0.45); z-index:10001; display:flex; align-items:flex-end; justify-content:center;}
 .modal-box{background:#fff; border-radius:20px 20px 0 0; padding:22px 20px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:520px;}
 .modal-box h3{font-size:17px; margin-bottom:8px;}
 .modal-box p{font-size:14px; color:var(--text-mute); line-height:1.5; margin-bottom:18px;}
@@ -305,21 +310,28 @@ nav.bottom-nav button.active{color:var(--accent);}
   <div class="license-desc">
     Keep track of every WhatsApp order, know exactly what to cook today, and never lose a customer's details — all stored privately on your phone.
   </div>
+  <div id="trial-ended" class="hidden">
+    <b>Your 7-day free trial has ended.</b><br>
+    Your orders are safe on this phone. Enter your code to continue — everything you added stays.
+    <button class="btn-activate" id="trial-backup-btn" style="margin-top:12px;background:transparent;color:#fff;border:1.5px solid #fff;">💾 Save a backup of my orders</button>
+  </div>
+  <button class="btn-trial" id="start-trial-btn">🎁 Try free for 7 days</button>
+  <p class="license-or" id="license-or">or, if you already bought it:</p>
   <div class="license-box hidden" id="owner-box">
-    <p style="margin:0 0 12px;font-size:14px;font-weight:700;">✅ Code accepted! One last step.</p>
+    <p style="margin:0 0 12px;font-size:14px;font-weight:700;" id="owner-title">✅ Code accepted! One last step.</p>
     <label for="owner-name">Your business name (shown on customer messages)</label>
     <input type="text" id="owner-name" class="owner-input" placeholder="e.g. Layla's Kitchen" maxlength="40" autocomplete="organization">
     <label for="owner-phone">Your WhatsApp number</label>
     <input type="tel" id="owner-phone" class="owner-input" placeholder="05X XXX XXXX" autocomplete="tel">
     <div id="owner-error" style="display:none;color:#FFE1D6;background:rgba(0,0,0,0.15);border-radius:10px;padding:10px;font-size:13px;margin-bottom:12px;">Please enter your business name and a valid phone number.</div>
-    <p style="margin:0 0 12px;font-size:12px;opacity:.9;">This can't be changed later, so please check the spelling.</p>
+    <p style="margin:0 0 12px;font-size:12px;opacity:.9;" id="owner-note">This can't be changed later, so please check the spelling.</p>
     <button class="btn-activate" id="owner-save-btn">Start using the app</button>
   </div>
   <div class="license-box hidden" id="ios-box" style="text-align:left;">
     <p style="margin:0 0 10px;font-size:15px;font-weight:800;text-align:center;">📱 iPhone: 3 quick steps</p>
-    <p style="margin:0 0 8px;font-size:14px;line-height:1.45;"><b>1.</b> Tap <b>Copy my code</b> below.</p>
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.45;"><b>1.</b> Bought already? Tap <b>Copy my code</b> below. (Just trying? Skip this.)</p>
     <p style="margin:0 0 8px;font-size:14px;line-height:1.45;"><b>2.</b> Tap the <b>Share</b> button <span aria-hidden="true">(□↑)</span> at the bottom of Safari → <b>Add to Home Screen</b> → <b>Add</b>.</p>
-    <p style="margin:0 0 12px;font-size:14px;line-height:1.45;"><b>3.</b> Open <b>Orders</b> from your home screen and paste the code.</p>
+    <p style="margin:0 0 12px;font-size:14px;line-height:1.45;"><b>3.</b> Open <b>Orders</b> from your home screen → tap <b>Try free for 7 days</b>, or paste your code.</p>
     <button class="btn-activate" id="ios-copy-btn">Copy my code</button>
     <p style="margin:10px 0 0;font-size:12px;opacity:.9;text-align:center;">Important: activate inside the home-screen app, not here in Safari.</p>
   </div>
@@ -329,6 +341,7 @@ nav.bottom-nav button.active{color:var(--accent);}
     <div id="license-error">That code isn't valid. Copy the whole code from your WhatsApp message and try again.</div>
     <button class="btn-activate" id="activate-btn">Activate App</button>
   </div>
+  <button class="link-btn hidden" id="back-to-trial-btn">← Back to the app (keep using the free trial)</button>
   <a id="buy-license-btn" class="license-footer hidden" style="display:block;margin-top:14px;font-weight:700;color:#fff;" href="#">Don't have a code? Buy on WhatsApp →</a>
   <div class="license-footer">Bought already? Your activation code was sent to you on WhatsApp.</div>
 </div>
@@ -366,6 +379,14 @@ nav.bottom-nav button.active{color:var(--accent);}
       </div>
       <button class="btn-new-order" id="home-new-order-btn">➕ New Order</button>
       <div class="section-title">Today's Orders</div>
+      <div class="summary-card hidden trial-card" id="trial-card">
+        <div style="font-weight:800;margin-bottom:4px;" id="trial-card-title">🎁 Free trial</div>
+        <div style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Like it? Get your code and keep everything you added — nothing is lost.</div>
+        <div style="display:flex;gap:8px;">
+          <a class="btn-teal hidden" id="trial-buy-btn" href="#" target="_blank" rel="noopener" style="margin:0;flex:1;text-align:center;text-decoration:none;display:block;padding:12px;">Buy on WhatsApp</a>
+          <button class="btn-secondary" id="trial-code-btn" style="margin:0;flex:1;">I have a code</button>
+        </div>
+      </div>
       <div class="summary-card hidden" id="sample-notice" style="margin:0 0 14px;border:1.5px dashed var(--teal);">
         <div style="font-weight:800;margin-bottom:4px;">👀 You're looking at sample orders</div>
         <div style="font-size:13px;color:var(--text-mute);margin-bottom:10px;">Remove them before adding your real orders.</div>
@@ -658,8 +679,8 @@ const LICENSE_PUBLIC_KEY = {"kty":"EC","crv":"P-256","x":"n9eLjceAKqYQ__57-5c34b
 const REVOKED_LICENSE_IDS = [];
 // Your sales WhatsApp number in international format, digits only (e.g. '971501234567').
 // Leave '' to hide the "Buy a licence" button.
-const APP_VERSION = 12;
-const SALES_WHATSAPP = '';
+const APP_VERSION = 14;
+const SALES_WHATSAPP = '971556256560';
 // Your Google Apps Script web app address (ends with /exec). Leave '' to switch the online check off.
 const LICENSE_SERVER = 'https://script.google.com/macros/s/AKfycbyDWuqAzgr4BfE0Pv2KUXYHJE6Du-Qkcj5GZ0q5Y-KWufz4WH4c1coovD9bClOpnq2Z/exec';
 
@@ -855,6 +876,7 @@ window.addEventListener('offline', updateOfflineIndicator);
 
 /* ============================= HOME DASHBOARD ============================ */
 function renderHome(){
+  renderTrialCard();
   renderBackupStatus();
   renderUpcoming();
   document.getElementById('sample-notice').classList.toggle('hidden', !ORDERS.some(o => o.sample));
@@ -1365,7 +1387,7 @@ function renderDetail(){
       <div class="detail-row"><span class="k">Phone</span><span class="v">${escapeHtml(o.customerPhone||'—')}</span></div>
       <div class="detail-row"><span class="k">Delivery</span><span class="v">${o.deliveryType === 'Delivery' ? '🚗 Delivery' : '🏠 Pickup'}</span></div>
       ${o.deliveryType === 'Delivery' ? `<div class="detail-row"><span class="k">Area/Address</span><span class="v">${escapeHtml(o.deliveryAddress||'—')}</span></div>` : ''}
-      <div class="detail-row"><span class="k">Date &amp; Time</span><span class="v">${fmtDateNice(o.deliveryDate)}, ${fmtTimeNice(o.deliveryTime)}</span></div>
+      <div class="detail-row"><span class="k">Date &amp; Time</span><span class="v">${fmtDateNice(o.deliveryDate)}${o.deliveryTime ? ', ' + fmtTimeNice(o.deliveryTime) : ''}</span></div>
       <div class="detail-row"><span class="k">Payment</span><span class="v">${o.paymentMethod} · ${payBadge(o)}</span></div>
       ${o.notes ? `<div class="detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(o.notes)}</span></div>` : ''}
     </div>
@@ -1886,6 +1908,88 @@ function confirmModal(title, desc, onConfirm, confirmLabel='Confirm', danger=fal
   document.getElementById('modal-confirm-btn').addEventListener('click', () => { root.innerHTML=''; onConfirm(); });
 }
 
+/* ============================= FREE TRIAL (7 days) ===========================
+   No code needed to start. Orders are saved on the phone exactly like a paid app,
+   so entering a code later simply unlocks the same data — nothing to move or restore. */
+const TRIAL_DAYS = 7;
+let TRIAL = null;      // { key:'trial', startedAt, lastSeen, owner:{b,p} }
+let OWNER_MODE = 'code';
+function trialDaysLeft(t){
+  if (!t) return 0;
+  const now = Math.max(Date.now(), t.lastSeen || 0);           // moving the phone clock back doesn't add days
+  return Math.max(0, Math.ceil((t.startedAt + TRIAL_DAYS * 86400000 - now) / 86400000));
+}
+function salesLink(text){ return SALES_WHATSAPP ? `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(text)}` : ''; }
+document.getElementById('start-trial-btn').addEventListener('click', () => {
+  OWNER_MODE = 'trial';
+  document.getElementById('owner-title').textContent = '🎁 Start your 7-day free trial';
+  document.getElementById('owner-note').textContent = 'Your business name appears on messages to your customers. Your name and number are also shared with the seller, so she can help you during the trial.';
+  document.getElementById('owner-save-btn').textContent = 'Start free trial';
+  document.getElementById('start-trial-btn').classList.add('hidden');
+  document.getElementById('license-or').classList.add('hidden');
+  showOwnerSetup();
+});
+// Tells the seller (your Google Sheet + email) that a trial started. Retries on a later open if offline.
+async function notifyTrial(){
+  try {
+    if (!LICENSE_SERVER || !TRIAL || TRIAL.notified || !navigator.onLine) return;
+    const device = await getDeviceId();
+    const u = LICENSE_SERVER + '?event=trial&device=' + encodeURIComponent(device)
+      + '&b=' + encodeURIComponent(TRIAL.owner.b) + '&p=' + encodeURIComponent(TRIAL.owner.p || '');
+    const r = await fetch(u, { cache: 'no-store', redirect: 'follow' });
+    const j = await r.json();
+    if (j && j.ok){ TRIAL.notified = true; await idbPut('settings', TRIAL); }
+  } catch(e){}
+}
+async function startTrialApp(){
+  TRIAL.lastSeen = Math.max(Date.now(), TRIAL.lastSeen || 0);
+  await idbPut('settings', TRIAL);
+  notifyTrial();
+  document.getElementById('license-screen').classList.add('hidden');
+  await startApp();
+}
+function renderTrialCard(){
+  const card = document.getElementById('trial-card');
+  const inTrial = !LICENSE && !!TRIAL;
+  card.classList.toggle('hidden', !inTrial);
+  if (!inTrial) return;
+  const d = trialDaysLeft(TRIAL);
+  if (d <= 0){ showTrialEnded(); return; }   // trial ran out while the app was open
+  document.getElementById('trial-card-title').textContent = `🎁 Free trial — ${d} day${d === 1 ? '' : 's'} left`;
+  const buy = document.getElementById('trial-buy-btn');
+  buy.href = salesLink(`Hi! I'm using the Food Order Tracker free trial (${TRIAL.owner.b}) and would like to buy it.`) || '#';
+  buy.classList.toggle('hidden', !SALES_WHATSAPP);
+}
+// Enter a code from inside the trial
+document.getElementById('trial-code-btn').addEventListener('click', () => {
+  document.getElementById('trial-ended').classList.add('hidden');
+  document.getElementById('start-trial-btn').classList.add('hidden');
+  document.getElementById('license-or').classList.add('hidden');
+  document.getElementById('owner-box').classList.add('hidden');
+  document.getElementById('license-box').classList.remove('hidden');
+  document.getElementById('back-to-trial-btn').classList.remove('hidden');
+  document.getElementById('license-screen').classList.remove('hidden');
+});
+document.getElementById('back-to-trial-btn').addEventListener('click', () => {
+  document.getElementById('back-to-trial-btn').classList.add('hidden');
+  document.getElementById('license-screen').classList.add('hidden');
+});
+// Trial over: lock, but keep the data and offer a backup + the code box
+async function showTrialEnded(){
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('bottom-nav').classList.add('hidden');
+  document.getElementById('trial-ended').classList.remove('hidden');
+  document.getElementById('start-trial-btn').classList.add('hidden');
+  document.getElementById('license-or').classList.add('hidden');
+  document.getElementById('owner-box').classList.add('hidden');
+  document.getElementById('license-box').classList.remove('hidden');
+  document.getElementById('license-screen').classList.remove('hidden');
+  const saved = await idbGet('settings', 'app'); if (saved) SETTINGS = { ...SETTINGS, ...saved };
+  ORDERS = await idbGetAll('orders');
+  document.getElementById('trial-backup-btn').classList.toggle('hidden', ORDERS.length === 0);
+}
+document.getElementById('trial-backup-btn').addEventListener('click', () => runBackup());
+
 /* ============================= LICENSE ACTIVATION ============================= */
 document.getElementById('activate-btn').addEventListener('click', activateLicense);
 document.getElementById('license-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') activateLicense(); });
@@ -1905,8 +2009,19 @@ async function activateLicense(){
   }
   if (lic){
     errEl.style.display='none';
-    await idbPut('settings', { key:'license', activated:true, code: lic.code, activatedAt: Date.now(), lastCheck: Date.now() });
-    if (!lic.b){ showOwnerSetup(); return; }   // batch code: ask the business name once
+    const trialOwner = TRIAL && TRIAL.owner;
+    await idbPut('settings', { key:'license', activated:true, code: lic.code, activatedAt: Date.now(), lastCheck: Date.now(), ...(trialOwner && !lic.b ? { owner: trialOwner } : {}) });
+    if (!lic.b && trialOwner){                 // was on the free trial: keep her business name and all her data
+      const full = { ...lic, b: trialOwner.b, p: trialOwner.p };
+      serverCheck(full);
+      document.getElementById('trial-ended').classList.add('hidden');
+      document.getElementById('back-to-trial-btn').classList.add('hidden');
+      await finishActivation(full);
+      return;
+    }
+    if (!lic.b){ OWNER_MODE = 'code'; showOwnerSetup(); return; }   // batch code: ask the business name once
+    document.getElementById('trial-ended').classList.add('hidden');
+    document.getElementById('back-to-trial-btn').classList.add('hidden');
     await finishActivation(lic);
   } else {
     errEl.textContent = INVALID_CODE_MSG;
@@ -1917,10 +2032,17 @@ async function finishActivation(lic){
   LICENSE = lic;
   document.getElementById('license-screen').classList.add('hidden');
   await startApp();
-  showToast(`Activated for ${lic.b}. Welcome!`, 3500);
+  showToast(TRIAL ? `Activated ✅ All your orders are kept. Thank you, ${lic.b}!` : `Activated for ${lic.b}. Welcome!`, 4000);
 }
 function showOwnerSetup(){
+  if (OWNER_MODE === 'code'){
+    document.getElementById('owner-title').textContent = '✅ Code accepted! One last step.';
+    document.getElementById('owner-note').textContent = "This can't be changed later, so please check the spelling.";
+    document.getElementById('owner-save-btn').textContent = 'Start using the app';
+  }
   document.getElementById('license-screen').classList.remove('hidden');
+  document.getElementById('start-trial-btn').classList.add('hidden');
+  document.getElementById('license-or').classList.add('hidden');
   document.getElementById('license-box').classList.add('hidden');
   document.getElementById('owner-box').classList.remove('hidden');
 }
@@ -1932,6 +2054,12 @@ document.getElementById('owner-save-btn').addEventListener('click', async () => 
   const p = normalizePhone(document.getElementById('owner-phone').value);
   const err = document.getElementById('owner-error');
   if (b.length < 2 || p.length < 9){ err.style.display = 'block'; return; }
+  if (OWNER_MODE === 'trial'){
+    TRIAL = { key:'trial', startedAt: Date.now(), lastSeen: Date.now(), owner: { b, p } };
+    await startTrialApp();
+    showToast(`Welcome, ${b}! Your 7-day free trial has started 🎉`, 4000);
+    return;
+  }
   const rec = await idbGet('settings', 'license');
   const lic = rec && rec.code ? await verifyLicenseCode(rec.code) : null;
   if (!lic){ location.reload(); return; }
@@ -2001,15 +2129,17 @@ async function backgroundRecheck(){
 // The business name + phone come from the licence and cannot be changed in Settings.
 // A shared code therefore shows the original buyer's business on every screen and WhatsApp message.
 function applyLicenseIdentity(){
-  if (!LICENSE) return;
-  SETTINGS.businessName = LICENSE.b;
-  SETTINGS.ownerPhone = LICENSE.p || '';
+  const who = LICENSE || (TRIAL && TRIAL.owner);
+  if (!who) return;
+  SETTINGS.businessName = who.b;
+  SETTINGS.ownerPhone = who.p || '';
   const n = document.getElementById('set-business-name');
   const ph = document.getElementById('set-owner-phone');
   n.value = SETTINGS.businessName; n.readOnly = true;
   ph.value = SETTINGS.ownerPhone; ph.readOnly = true;
-  document.getElementById('license-info').textContent =
-    `Licensed to ${LICENSE.b}${LICENSE.p ? ' · ' + LICENSE.p : ''} · Licence ID ${LICENSE.id}`;
+  document.getElementById('license-info').textContent = LICENSE
+    ? `Licensed to ${LICENSE.b}${LICENSE.p ? ' · ' + LICENSE.p : ''} · Licence ID ${LICENSE.id}`
+    : `Free trial for ${who.b} · ${trialDaysLeft(TRIAL)} day(s) left`;
 }
 if (SALES_WHATSAPP){
   const buy = document.getElementById('buy-license-btn');
@@ -2111,6 +2241,20 @@ async function startApp(){
   navigate('home');
 }
 
+// Activation link tapped while the app is already open in this tab (e.g. during the trial)
+window.addEventListener('hashchange', () => {
+  const m = location.hash.match(/activate=([^&]+)/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname);
+  PENDING_CODE = decodeURIComponent(m[1]);
+  document.getElementById('license-input').value = PENDING_CODE;
+  if (LICENSE) return;
+  ['start-trial-btn','license-or','owner-box','ios-box'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('license-box').classList.remove('hidden');
+  document.getElementById('license-screen').classList.remove('hidden');
+  activateLicense();
+});
+
 (async function init(){
   // Activation link: .../#activate=<code> fills the box and activates in one tap
   // (also accepts ?activate=<code>, used when Samsung Internet hands over to Chrome)
@@ -2124,7 +2268,7 @@ async function startApp(){
   // iPhone in Safari: Safari and the home-screen app keep separate data, so activating here
   // would not unlock the home-screen app. Guide them to add it to the home screen first.
   if (isIOS() && !isStandalone()){
-    const rec0 = await idbGet('settings', 'license');
+    const rec0 = (await idbGet('settings', 'license')) || (await idbGet('settings', 'trial'));
     if (!rec0){
       document.getElementById('license-box').classList.add('hidden');
       document.getElementById('ios-box').classList.remove('hidden');
@@ -2142,15 +2286,25 @@ async function startApp(){
   const license = await idbGet('settings', 'license');
   let lic = license && license.code ? await verifyLicenseCode(license.code) : null;
   if (lic && !lic.b && license.owner) lic = { ...lic, b: license.owner.b, p: license.owner.p };
+  TRIAL = (await idbGet('settings', 'trial')) || null;
+  if (lic && !lic.b && TRIAL && TRIAL.owner) lic = { ...lic, b: TRIAL.owner.b, p: TRIAL.owner.p };
   if (lic && !lic.b){
-    showOwnerSetup();            // code accepted earlier but business name not entered yet
+    OWNER_MODE = 'code'; showOwnerSetup();   // code accepted earlier but business name not entered yet
   } else if (lic){
     LICENSE = lic;
     document.getElementById('license-screen').classList.add('hidden');
     startApp();
+  } else if (m){
+    document.getElementById('license-screen').classList.remove('hidden');
+    document.getElementById('start-trial-btn').classList.add('hidden');
+    document.getElementById('license-or').classList.add('hidden');
+    activateLicense();                         // activation link (also upgrades a trial, keeping its data)
+  } else if (TRIAL && trialDaysLeft(TRIAL) > 0){
+    startTrialApp();
+  } else if (TRIAL){
+    showTrialEnded();
   } else {
     document.getElementById('license-screen').classList.remove('hidden');
-    if (m) activateLicense();
   }
 })();
 </script>
